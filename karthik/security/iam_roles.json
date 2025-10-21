@@ -1,0 +1,459 @@
+{
+  "RadStreamIAMRoles": {
+    "description": "IAM roles and policies for RadStream medical imaging pipeline",
+    "version": "2024-01-15",
+    "roles": {
+      "LambdaExecutionRole": {
+        "role_name": "RadStreamLambdaExecutionRole",
+        "description": "Execution role for RadStream Lambda functions",
+        "assume_role_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "policies": [
+          {
+            "name": "RadStreamLambdaBasicPolicy",
+            "description": "Basic permissions for Lambda functions",
+            "policy": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::radstream-images-*/*",
+                    "arn:aws:s3:::radstream-results-*/*",
+                    "arn:aws:s3:::radstream-telemetry-*/*",
+                    "arn:aws:s3:::radstream-artifacts-*/*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kinesis:PutRecord",
+                    "kinesis:PutRecords"
+                  ],
+                  "Resource": "arn:aws:kinesis:*:*:stream/radstream-*"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "StepFunctionsExecutionRole": {
+        "role_name": "RadStreamStepFunctionsExecutionRole",
+        "description": "Execution role for Step Functions state machine",
+        "assume_role_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "states.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "policies": [
+          {
+            "name": "RadStreamStepFunctionsPolicy",
+            "description": "Permissions for Step Functions to invoke Lambda and EKS",
+            "policy": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": "arn:aws:lambda:*:*:function:radstream-*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "eks:DescribeCluster",
+                    "eks:ListClusters"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "eks:RunJob"
+                  ],
+                  "Resource": [
+                    "arn:aws:eks:*:*:cluster/radstream-*",
+                    "arn:aws:eks:*:*:jobdefinition/*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::radstream-*/*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kinesis:PutRecord"
+                  ],
+                  "Resource": "arn:aws:kinesis:*:*:stream/radstream-*"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "EKSNodeGroupRole": {
+        "role_name": "RadStreamEKSNodeGroupRole",
+        "description": "Role for EKS node group instances",
+        "assume_role_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "policies": [
+          {
+            "name": "EKSNodeGroupPolicy",
+            "description": "Standard EKS node group permissions",
+            "policy": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                    "logs:DescribeLogGroups",
+                    "logs:DescribeLogStreams"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::radstream-*/*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kinesis:PutRecord",
+                    "kinesis:PutRecords"
+                  ],
+                  "Resource": "arn:aws:kinesis:*:*:stream/radstream-*"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "EventBridgeRole": {
+        "role_name": "RadStreamEventBridgeRole",
+        "description": "Role for EventBridge to invoke Step Functions",
+        "assume_role_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "events.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "policies": [
+          {
+            "name": "EventBridgeStepFunctionsPolicy",
+            "description": "Permissions for EventBridge to invoke Step Functions",
+            "policy": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "states:StartExecution"
+                  ],
+                  "Resource": "arn:aws:states:*:*:stateMachine:radstream-*"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "KinesisFirehoseRole": {
+        "role_name": "RadStreamKinesisFirehoseRole",
+        "description": "Role for Kinesis Data Firehose to write to S3",
+        "assume_role_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "firehose.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "policies": [
+          {
+            "name": "FirehoseS3Policy",
+            "description": "Permissions for Firehose to write to S3",
+            "policy": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:AbortMultipartUpload",
+                    "s3:GetBucketLocation",
+                    "s3:GetObject",
+                    "s3:ListBucket",
+                    "s3:ListBucketMultipartUploads",
+                    "s3:PutObject"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::radstream-telemetry-*",
+                    "arn:aws:s3:::radstream-telemetry-*/*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kinesis:DescribeStream",
+                    "kinesis:GetShardIterator",
+                    "kinesis:GetRecords",
+                    "kinesis:ListShards"
+                  ],
+                  "Resource": "arn:aws:kinesis:*:*:stream/radstream-*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:log-group:/aws/kinesisfirehose/*"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "GlueCrawlerRole": {
+        "role_name": "RadStreamGlueCrawlerRole",
+        "description": "Role for Glue crawler to access S3 data",
+        "assume_role_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "glue.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "policies": [
+          {
+            "name": "GlueS3Policy",
+            "description": "Permissions for Glue to access S3",
+            "policy": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::radstream-telemetry-*",
+                    "arn:aws:s3:::radstream-telemetry-*/*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "security_policies": {
+      "S3BucketPolicy": {
+        "description": "S3 bucket policy for security",
+        "policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureConnections",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                "arn:aws:s3:::radstream-*",
+                "arn:aws:s3:::radstream-*/*"
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            },
+            {
+              "Sid": "DenyPublicAccess",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::radstream-*/*",
+              "Condition": {
+                "StringNotEquals": {
+                  "aws:PrincipalServiceName": [
+                    "lambda.amazonaws.com",
+                    "states.amazonaws.com",
+                    "firehose.amazonaws.com",
+                    "glue.amazonaws.com"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "KinesisStreamPolicy": {
+        "description": "Kinesis stream policy for security",
+        "policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowRadStreamServices",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  "arn:aws:iam::*:role/RadStreamLambdaExecutionRole",
+                  "arn:aws:iam::*:role/RadStreamStepFunctionsExecutionRole",
+                  "arn:aws:iam::*:role/RadStreamEKSNodeGroupRole"
+                ]
+              },
+              "Action": [
+                "kinesis:PutRecord",
+                "kinesis:PutRecords"
+              ],
+              "Resource": "arn:aws:kinesis:*:*:stream/radstream-*"
+            }
+          ]
+        }
+      }
+    },
+    "security_configurations": {
+      "encryption": {
+        "s3": {
+          "default_encryption": "AES256",
+          "kms_key_id": "alias/radstream-encryption-key"
+        },
+        "kinesis": {
+          "encryption_type": "KMS",
+          "kms_key_id": "alias/radstream-kinesis-key"
+        },
+        "lambda": {
+          "environment_variables_encryption": true
+        }
+      },
+      "network_security": {
+        "vpc": {
+          "enable_vpc": true,
+          "subnet_ids": ["subnet-*", "subnet-*"],
+          "security_group_ids": ["sg-*"]
+        },
+        "endpoints": {
+          "s3": "vpce-*",
+          "kinesis": "vpce-*",
+          "glue": "vpce-*"
+        }
+      },
+      "monitoring": {
+        "cloudtrail": {
+          "enable_logging": true,
+          "log_group": "/aws/cloudtrail/radstream"
+        },
+        "guardduty": {
+          "enable_detection": true,
+          "finding_publishing_frequency": "FIFTEEN_MINUTES"
+        },
+        "waf": {
+          "enable_protection": true,
+          "managed_rules": [
+            "AWSManagedRulesCommonRuleSet",
+            "AWSManagedRulesKnownBadInputsRuleSet"
+          ]
+        }
+      }
+    },
+    "compliance": {
+      "hipaa": {
+        "enabled": true,
+        "requirements": [
+          "Encryption in transit",
+          "Encryption at rest",
+          "Access logging",
+          "Audit trails"
+        ]
+      },
+      "data_retention": {
+        "telemetry_data": "365 days",
+        "image_data": "90 days",
+        "results_data": "90 days",
+        "logs": "30 days"
+      }
+    }
+  }
+}

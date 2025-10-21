@@ -73,7 +73,10 @@ results/
 outputs/
 benchmark-results/
 *.csv
-*.json
+# Allow specific JSON files needed for the project
+!**/iam_roles.json
+!**/model_config.pbtxt
+!**/deploy_manifest.yaml
 
 # Environment variables
 .env

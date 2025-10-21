@@ -1,0 +1,83 @@
+# RadStream Medical Imaging Pipeline - Python Dependencies
+# Core AWS and Python libraries
+
+# AWS SDK
+boto3>=1.34.0
+botocore>=1.34.0
+
+# Image processing
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Data processing
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# HTTP requests
+requests>=2.31.0
+
+# JSON and data handling
+jsonschema>=4.17.0
+
+# Date and time handling
+python-dateutil>=2.8.0
+
+# Command line interface
+click>=8.1.0
+argparse
+
+# Progress bars and utilities
+tqdm>=4.65.0
+
+# Testing (optional, for development)
+pytest>=7.0.0
+pytest-mock>=3.10.0
+moto>=4.0.0  # For mocking AWS services
+
+# Jupyter notebooks (optional, for analysis)
+jupyter>=1.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Performance monitoring
+psutil>=5.9.0
+
+# Logging and monitoring
+structlog>=23.1.0
+
+# Configuration management
+pyyaml>=6.0.0
+python-dotenv>=1.0.0
+
+# Data validation
+pydantic>=2.0.0
+
+# Async support (if needed)
+aiohttp>=3.8.0
+asyncio
+
+# Database connectivity (if needed)
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0  # For PostgreSQL if needed
+
+# Machine learning (if needed for local testing)
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.30.0
+
+# Utilities
+uuid
+hashlib
+base64
+json
+datetime
+time
+os
+sys
+threading
+concurrent.futures
+tempfile
+zipfile
+csv
+statistics
+io
