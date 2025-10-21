@@ -1,0 +1,142 @@
+# RadStream Medical Imaging Model Configuration
+# Triton Inference Server configuration for medical imaging models
+
+# Chest X-ray Classification Model
+name: "radstream_classifier"
+platform: "pytorch_libtorch"
+backend: "pytorch"
+max_batch_size: 8
+input [
+  {
+    name: "input_image"
+    data_type: TYPE_FP32
+    dims: [3, 224, 224]
+  }
+]
+output [
+  {
+    name: "predictions"
+    data_type: TYPE_FP32
+    dims: [5]  # 5 classes: normal, pneumonia, covid, tuberculosis, other
+  },
+  {
+    name: "confidence"
+    data_type: TYPE_FP32
+    dims: [1]
+  }
+]
+instance_group [
+  {
+    count: 1
+    kind: KIND_GPU
+    gpus: [0]
+  }
+]
+dynamic_batching {
+  max_queue_delay_microseconds: 10000
+  preferred_batch_size: [1, 2, 4, 8]
+}
+optimization {
+  execution_accelerators {
+    gpu_execution_accelerator: [
+      {
+        name: "tensorrt"
+        parameters {
+          key: "precision_mode"
+          value: "FP16"
+        }
+        parameters {
+          key: "max_workspace_size_bytes"
+          value: "1073741824"
+        }
+      }
+    ]
+  }
+}
+
+# Chest X-ray Object Detection Model
+name: "radstream_detector"
+platform: "pytorch_libtorch"
+backend: "pytorch"
+max_batch_size: 4
+input [
+  {
+    name: "input_image"
+    data_type: TYPE_FP32
+    dims: [3, 512, 512]
+  }
+]
+output [
+  {
+    name: "boxes"
+    data_type: TYPE_FP32
+    dims: [-1, 4]  # Variable number of bounding boxes
+  },
+  {
+    name: "scores"
+    data_type: TYPE_FP32
+    dims: [-1]
+  },
+  {
+    name: "labels"
+    data_type: TYPE_INT32
+    dims: [-1]
+  }
+]
+instance_group [
+  {
+    count: 1
+    kind: KIND_GPU
+    gpus: [0]
+  }
+]
+dynamic_batching {
+  max_queue_delay_microseconds: 15000
+  preferred_batch_size: [1, 2, 4]
+}
+
+# Vision-Language Encoder Model (for report generation)
+name: "radstream_encoder"
+platform: "pytorch_libtorch"
+backend: "pytorch"
+max_batch_size: 2
+input [
+  {
+    name: "input_image"
+    data_type: TYPE_FP32
+    dims: [3, 224, 224]
+  },
+  {
+    name: "input_text"
+    data_type: TYPE_STRING
+    dims: [1]
+  }
+]
+output [
+  {
+    name: "image_features"
+    data_type: TYPE_FP32
+    dims: [768]
+  },
+  {
+    name: "text_features"
+    data_type: TYPE_FP32
+    dims: [768]
+  },
+  {
+    name: "joint_features"
+    data_type: TYPE_FP32
+    dims: [768]
+  }
+]
+instance_group [
+  {
+    count: 1
+    kind: KIND_GPU
+    gpus: [0]
+  }
+]
+dynamic_batching {
+  max_queue_delay_microseconds: 20000
+  preferred_batch_size: [1, 2]
+}
