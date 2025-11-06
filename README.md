@@ -52,24 +52,24 @@ Medical Images → S3 → EventBridge → Step Functions → Lambda → EKS → 
    pip install -r shared/requirements.txt
    ```
 
-3. **Set up AWS infrastructure**
+3. **Set up AWS infrastructure** (Karthik's responsibility)
    ```bash
    # Create S3 buckets
-   python shared/infrastructure/s3_setup.py
+   python karthik/infrastructure/s3_setup.py
    
    # Set up EventBridge rules
-   python shared/infrastructure/eventbridge_setup.py
+   python karthik/infrastructure/eventbridge_setup.py
    
    # Create Step Functions workflow
-   python shared/infrastructure/stepfunctions_setup.py
+   python karthik/infrastructure/stepfunctions_setup.py
    
    # Deploy Lambda functions
-   python shared/infrastructure/lambda_setup.py
+   python karthik/infrastructure/lambda_setup.py
    
    # Set up Kinesis streams
-   python shared/infrastructure/kinesis_setup.py
+   python karthik/infrastructure/kinesis_setup.py
    
-   # Create Glue schema
+   # Create Glue schema (Rahul's responsibility)
    python rahul/telemetry/glue_schema.py
    ```
 
@@ -95,16 +95,10 @@ Medical Images → S3 → EventBridge → Step Functions → Lambda → EKS → 
 
 ```
 RadStream/
-├── shared/                    # Common infrastructure
-│   ├── infrastructure/        # Core AWS setup (Rahul's primary)
-│   │   ├── s3_setup.py       # S3 bucket creation & config
-│   │   ├── lambda_setup.py   # Lambda deployment
-│   │   ├── eventbridge_setup.py # Event rules
-│   │   ├── stepfunctions_setup.py # Workflow orchestration
-│   │   └── kinesis_setup.py  # Telemetry streams
+├── shared/                    # Common documentation
 │   ├── docs/                 # All documentation
 │   │   ├── architecture.md
-│   │   ├── member_tasks.md
+│   │   ├── PROGRESS_REPORT.md
 │   │   └── evaluation_plan.md
 │   └── requirements.txt
 ├── rahul/                    # Rahul's implementations
@@ -120,7 +114,8 @@ RadStream/
 │   │   └── athena_queries.sql
 │   ├── scripts/              # Helper scripts
 │   │   ├── upload_images.py
-│   │   └── benchmark.py
+│   │   ├── benchmark.py
+│   │   └── test_pipeline.py
 │   └── README.md
 ├── mukul/                    # Mukul's implementations
 │   ├── inference/            # EKS/model serving
@@ -130,7 +125,13 @@ RadStream/
 │   │   ├── start_triton.sh
 │   │   └── deploy_manifest.yaml
 │   └── README.md
-├── karthik/                  # Karthik's implementations
+├── karthik/                  # Karthik's implementations (Infrastructure & Security)
+│   ├── infrastructure/       # AWS infrastructure setup scripts
+│   │   ├── s3_setup.py      # S3 bucket creation & config
+│   │   ├── lambda_setup.py  # Lambda deployment
+│   │   ├── eventbridge_setup.py # Event rules
+│   │   ├── stepfunctions_setup.py # Workflow orchestration
+│   │   └── kinesis_setup.py # Telemetry streams
 │   ├── security/             # Security & compliance
 │   │   └── iam_roles.json
 │   └── README.md
@@ -138,6 +139,7 @@ RadStream/
 │   ├── workflows/
 │   └── ISSUE_TEMPLATE/
 ├── CONTRIBUTING.md
+├── PROGRESS_REPORT.md
 └── README.md
 ```
 
@@ -303,7 +305,7 @@ aws stepfunctions list-executions --state-machine-arn <arn>
 ## 📚 Documentation
 
 - [Architecture Documentation](shared/docs/architecture.md)
-- [Team Tasks & Dependencies](shared/docs/member_tasks.md)
+- [Progress Report & Task Breakdown](shared/docs/PROGRESS_REPORT.md)
 - [Evaluation Plan & A/B Testing](shared/docs/evaluation_plan.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
 
