@@ -5,6 +5,7 @@ Validates JSON sidecar files for required fields and format
 """
 
 import json
+import os
 import boto3
 import time
 from datetime import datetime
@@ -162,7 +163,7 @@ def validate_metadata_fields(metadata: Dict[str, Any]) -> Dict[str, Any]:
             errors.append(f"Optional field '{field}' must be of type {expected_type.__name__}")
     
     # Validate study_id format (alphanumeric with hyphens/underscores)
-    if 'study_id' in metadata and validation_result['valid']:
+    if 'study_id' in metadata:
         study_id = metadata['study_id']
         if not all(c.isalnum() or c in '-_' for c in study_id):
             errors.append("Field 'study_id' can only contain alphanumeric characters, hyphens, and underscores")

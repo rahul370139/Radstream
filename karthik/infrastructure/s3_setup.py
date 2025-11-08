@@ -90,11 +90,15 @@ class S3Setup:
             
             # Set up lifecycle policy
             if config.get('lifecycle_policy'):
-                self.s3_client.put_bucket_lifecycle_configuration(
-                    Bucket=bucket_name,
-                    LifecycleConfiguration=config['lifecycle_policy']
-                )
-                print(f"Applied lifecycle policy to {bucket_name}")
+                try:
+                    self.s3_client.put_bucket_lifecycle_configuration(
+                        Bucket=bucket_name,
+                        LifecycleConfiguration=config['lifecycle_policy']
+                    )
+                    print(f"Applied lifecycle policy to {bucket_name}")
+                except ClientError as e:
+                    print(f"Warning: Could not apply lifecycle policy to {bucket_name}: {e}")
+                    print("   Bucket created successfully, but lifecycle policy needs manual configuration")
             
             # Set up CORS if specified
             if config.get('cors_policy'):

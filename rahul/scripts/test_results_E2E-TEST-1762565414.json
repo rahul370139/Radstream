@@ -1,0 +1,33 @@
+{
+  "study_id": "E2E-TEST-1762565414",
+  "timestamp": "2025-11-08T01:30:15.004044",
+  "tests": {
+    "upload": {
+      "success": true,
+      "study_id": "E2E-TEST-1762565414",
+      "image_key": "test/E2E-TEST-1762565414.jpg",
+      "metadata_key": "test/E2E-TEST-1762565414.json"
+    },
+    "step_functions": {
+      "success": false,
+      "error": "No execution found for study_id"
+    },
+    "lambda_functions": {
+      "validate_metadata": {
+        "success": false,
+        "response": {
+          "valid": false,
+          "errors": [
+            "Failed to download metadata from S3: An error occurred (AccessDenied) when calling the GetObject operation: User: arn:aws:sts::222634400500:assumed-role/RadStreamValidateMetadataRole/radstream-validate-metadata is not authorized to perform: s3:ListBucket on resource: \"arn:aws:s3:::radstream-images-222634400500\" because no identity-based policy allows the s3:ListBucket action"
+          ],
+          "studyId": null,
+          "latency_ms": 59
+        }
+      }
+    },
+    "results": {
+      "success": false,
+      "results_found": false
+    }
+  }
+}

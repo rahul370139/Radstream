@@ -1,0 +1,96 @@
+{
+  "study_id": "E2E-606A81DB",
+  "timestamp": "2025-11-08T01:35:12.590729",
+  "tests": {
+    "upload": {
+      "success": true,
+      "image_key": "test/E2E-606A81DB.jpg",
+      "metadata_key": "test/E2E-606A81DB.json",
+      "study_id": "E2E-606A81DB"
+    },
+    "step_functions_trigger": {
+      "success": true,
+      "execution_arn": "arn:aws:states:us-east-1:222634400500:execution:radstream-pipeline:e2e-test-E2E-606A81DB-1762565712",
+      "execution_name": "e2e-test-E2E-606A81DB-1762565712"
+    },
+    "step_functions_execution": {
+      "success": true,
+      "status": "SUCCEEDED",
+      "output": {
+        "success": true,
+        "latency_ms": 36,
+        "timestamp": "2025-11-08T01:35:13.848071"
+      }
+    },
+    "lambda_logs": {
+      "radstream-validate-metadata": {
+        "success": true,
+        "events": [
+          "REPORT RequestId: e3fa8ddd-f318-4fb6-a85c-ec3de3ffbbb6\tDuration: 115.28 ms\tBilled Duration: 116 ms\tMemory Size: 1024 MB\tMax Memory Used: 83 MB\t\n",
+          "START RequestId: db85de18-a374-40ba-b647-97ff176bac2a Version: $LATEST\n",
+          "Validating metadata for: s3://radstream-images-222634400500/test/test.json\n",
+          "END RequestId: db85de18-a374-40ba-b647-97ff176bac2a\n",
+          "REPORT RequestId: db85de18-a374-40ba-b647-97ff176bac2a\tDuration: 63.31 ms\tBilled Duration: 64 ms\tMemory Size: 1024 MB\tMax Memory Used: 83 MB\t\n",
+          "START RequestId: b739372e-4ecb-47f7-8f14-8a7301f9794a Version: $LATEST\n",
+          "Validating metadata for: s3://radstream-images-222634400500/test/E2E-TEST-1762565414.jpg\n",
+          "Unexpected error in validation: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n",
+          "END RequestId: b739372e-4ecb-47f7-8f14-8a7301f9794a\n",
+          "REPORT RequestId: b739372e-4ecb-47f7-8f14-8a7301f9794a\tDuration: 128.63 ms\tBilled Duration: 129 ms\tMemory Size: 1024 MB\tMax Memory Used: 83 MB\t\n"
+        ]
+      },
+      "radstream-prepare-tensors": {
+        "success": true,
+        "events": [
+          "Original image size: 2424x2863\n",
+          "Preprocessing completed in 285ms for study STUDY-0a724aa6\n",
+          "END RequestId: f77cef5d-edfd-49e6-96c7-7415e9c07615\n",
+          "REPORT RequestId: f77cef5d-edfd-49e6-96c7-7415e9c07615\tDuration: 346.52 ms\tBilled Duration: 347 ms\tMemory Size: 1024 MB\tMax Memory Used: 150 MB\t\n",
+          "START RequestId: c41ce191-0df5-4ddd-a4d0-19ee3522f02f Version: $LATEST\n",
+          "Preprocessing image for study unknown: s3:///\n",
+          "Unexpected error in preprocessing: Parameter validation failed:\n",
+          "Invalid bucket name \"\": Bucket name must match the regex \"^[a-zA-Z0-9.\\-_]{1,255}$\" or be an ARN matching the regex \"^arn:(aws).*:(s3|s3-object-lambda):[a-z\\-0-9]*:[0-9]{12}:accesspoint[/:][a-zA-Z0-9\\-.]{1,63}$|^arn:(aws).*:s3-outposts:[a-z\\-0-9]+:[0-9]{12}:outpost[/:][a-zA-Z0-9\\-]{1,63}[/:]accesspoint[/:][a-zA-Z0-9\\-]{1,63}$\"\n",
+          "END RequestId: c41ce191-0df5-4ddd-a4d0-19ee3522f02f\n",
+          "REPORT RequestId: c41ce191-0df5-4ddd-a4d0-19ee3522f02f\tDuration: 62.02 ms\tBilled Duration: 63 ms\tMemory Size: 1024 MB\tMax Memory Used: 150 MB\t\n"
+        ]
+      },
+      "radstream-store-results": {
+        "success": true,
+        "events": [
+          "Results stored: s3://radstream-results-222634400500/results/unknown/2025/11/08/unknown_results.json\n",
+          "Results storage completed in 63ms for study unknown\n",
+          "END RequestId: 30ac28d0-f08a-428f-b7a2-f3c8602f1ccf\n",
+          "REPORT RequestId: 30ac28d0-f08a-428f-b7a2-f3c8602f1ccf\tDuration: 106.87 ms\tBilled Duration: 107 ms\tMemory Size: 1024 MB\tMax Memory Used: 82 MB\t\n",
+          "START RequestId: 8339d2d8-af69-484b-9a90-6939332db57f Version: $LATEST\n",
+          "Storing results for study unknown\n",
+          "Results stored: s3://radstream-results-222634400500/results/unknown/2025/11/08/unknown_results.json\n",
+          "Results storage completed in 94ms for study unknown\n",
+          "END RequestId: 8339d2d8-af69-484b-9a90-6939332db57f\n",
+          "REPORT RequestId: 8339d2d8-af69-484b-9a90-6939332db57f\tDuration: 150.61 ms\tBilled Duration: 151 ms\tMemory Size: 1024 MB\tMax Memory Used: 82 MB\t\n"
+        ]
+      },
+      "radstream-send-telemetry": {
+        "success": true,
+        "events": [
+          "INIT_START Runtime Version: python:3.9.v119\tRuntime Version ARN: arn:aws:lambda:us-east-1::runtime:d69887c3244bd3892359f0e26a6dfe5087759a31f0d95d0a873fd63b4695bb36\n",
+          "START RequestId: 0a5e887f-f43f-45c9-802d-589eb6a03474 Version: $LATEST\n",
+          "Sending telemetry for study unknown\n",
+          "/var/task/boto3/compat.py:84: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/\n",
+          "warnings.warn(warning, PythonDeprecationWarning)\n",
+          "Telemetry sent to Kinesis - SequenceNumber: 49668761120448026478721695642519596188023642634502275074\n",
+          "Telemetry sent successfully in 232ms for study unknown\n",
+          "END RequestId: 0a5e887f-f43f-45c9-802d-589eb6a03474\n",
+          "REPORT RequestId: 0a5e887f-f43f-45c9-802d-589eb6a03474\tDuration: 234.22 ms\tBilled Duration: 798 ms\tMemory Size: 1024 MB\tMax Memory Used: 74 MB\tInit Duration: 563.38 ms\t\n"
+        ]
+      }
+    },
+    "results": {
+      "success": false,
+      "results_found": false
+    },
+    "telemetry": {
+      "success": true,
+      "record_count": 10,
+      "has_data": true
+    }
+  }
+}

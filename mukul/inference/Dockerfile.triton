@@ -36,7 +36,9 @@ RUN echo "placeholder_model" > /models/radstream_detector/1/model.pt
 RUN echo "placeholder_model" > /models/radstream_encoder/1/model.pt
 
 # Copy custom Python backend (if needed)
-COPY custom_backend/ /opt/tritonserver/backends/custom_radstream/
+# Note: custom_backend directory is optional - commented out as it doesn't exist
+# If you have a custom backend, uncomment the line below:
+# COPY custom_backend/ /opt/tritonserver/backends/custom_radstream/
 
 # Copy health check script
 COPY health_check.py /opt/tritonserver/health_check.py

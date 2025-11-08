@@ -5,6 +5,7 @@ Stores model outputs and metadata to S3 results bucket
 """
 
 import json
+import os
 import boto3
 import time
 from datetime import datetime

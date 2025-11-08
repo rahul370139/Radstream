@@ -1,0 +1,14 @@
+{
+  "study_id": "STUDY-0a724aa6",
+  "view": "PA",
+  "timestamp": "2025-11-07T21:26:30.256482Z",
+  "patient_id": "PAT-0a724aa6",
+  "institution": "Test Hospital",
+  "modality": "X-RAY",
+  "body_part": "CHEST",
+  "study_date": "2025-11-07",
+  "image_size": {
+    "width": null,
+    "height": null
+  }
+}

@@ -1,0 +1,11 @@
+# RadStream Lambda Functions Requirements (without Pillow and NumPy - using Layers)
+# Core AWS and Python libraries
+boto3>=1.34.0
+botocore>=1.34.0
+
+# Image processing - REMOVED (using Lambda Layer instead)
+# Pillow>=10.0.0
+
+# NumPy for tensor operations - REMOVED (using Lambda Layer instead)
+# numpy>=1.24.0
+

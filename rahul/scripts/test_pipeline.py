@@ -60,8 +60,8 @@ class PipelineTester:
             image_data = self.create_test_image()
             metadata = self.create_test_metadata(study_id)
             
-            # Upload image
-            image_key = f'images/{study_id}/{study_id}.jpg'
+            # Upload image to trigger EventBridge (use 'test/' prefix to match EventBridge rule)
+            image_key = f'test/{study_id}.jpg'
             self.s3_client.put_object(
                 Bucket=self.images_bucket,
                 Key=image_key,
@@ -70,8 +70,8 @@ class PipelineTester:
                 ServerSideEncryption='AES256'
             )
             
-            # Upload metadata
-            metadata_key = f'images/{study_id}/{study_id}.json'
+            # Upload metadata (also in test/ prefix)
+            metadata_key = f'test/{study_id}.json'
             self.s3_client.put_object(
                 Bucket=self.images_bucket,
                 Key=metadata_key,
