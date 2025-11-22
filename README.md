@@ -73,13 +73,30 @@ Medical Images → S3 → EventBridge → Step Functions → Lambda → EKS → 
    python rahul/telemetry/glue_schema.py
    ```
 
-4. **Deploy EKS cluster** (Mukul's responsibility)
+4. **Deploy EKS cluster and Triton Inference Server** (Karthik's responsibility)
    ```bash
-   # Create EKS cluster
+   # Create EKS cluster (if not exists)
    eksctl create cluster --name radstream-cluster --region us-east-1
    
-   # Deploy model containers
+   # Create CPU nodegroup (t3.medium for inference capacity)
+   eksctl create nodegroup \
+     --cluster radstream-cluster \
+     --name cpu-ng \
+     --node-type t3.medium \
+     --nodes 1 --nodes-min 1 --nodes-max 1 \
+     --managed
+   
+   # Build and push Triton CPU image
+   docker build -t radstream-triton:cpu -f mukul/inference/Dockerfile.triton .
+   docker tag radstream-triton:cpu <account-id>.dkr.ecr.us-east-1.amazonaws.com/radstream-triton:cpu
+   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+   docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/radstream-triton:cpu
+   
+   # Deploy Triton to EKS
    kubectl apply -f mukul/inference/deploy_manifest.yaml
+   
+   # Create LoadBalancer service
+   kubectl apply -f mukul/inference/triton_service.yaml
    ```
 
 5. **Test the pipeline**
