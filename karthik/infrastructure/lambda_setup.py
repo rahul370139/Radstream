@@ -357,6 +357,16 @@ class LambdaSetup:
                 'environment_vars': {
                     'TELEMETRY_STREAM_NAME': 'radstream-telemetry'
                 }
+            },
+            'radstream-invoke-triton': {
+                'code_path': '../../rahul/preprocessing/invoke_triton_inference.py',
+                'requirements_path': '../../rahul/preprocessing/requirements_triton.txt',
+                'role_name': 'RadStreamInvokeTritonRole',
+                'environment_vars': {
+                    'TRITON_ENDPOINT': 'http://abb2c3656a2744f8191015f5b516d8fc-1489982899.us-east-1.elb.amazonaws.com:8000',
+                    'TRITON_MODEL_NAME': 'chexpert_classifier',
+                    'KINESIS_STREAM': 'radstream-telemetry'
+                }
             }
         }
         
@@ -365,7 +375,8 @@ class LambdaSetup:
             'RadStreamValidateMetadataRole': self.get_validate_metadata_policy(),
             'RadStreamPrepareTensorsRole': self.get_prepare_tensors_policy(),
             'RadStreamStoreResultsRole': self.get_store_results_policy(),
-            'RadStreamSendTelemetryRole': self.get_send_telemetry_policy()
+            'RadStreamSendTelemetryRole': self.get_send_telemetry_policy(),
+            'RadStreamInvokeTritonRole': self.get_invoke_triton_policy()
         }
         
         roles = {}
@@ -502,6 +513,28 @@ class LambdaSetup:
                         "kinesis:PutRecords"
                     ],
                     "Resource": f"arn:aws:kinesis:{self.region}:{self.account_id}:stream/radstream-telemetry"
+                }
+            ]
+        }
+    
+    def get_invoke_triton_policy(self) -> Dict:
+        """Get IAM policy for invoke Triton function"""
+        return {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "kinesis:PutRecord"
+                    ],
+                    "Resource": f"arn:aws:kinesis:{self.region}:{self.account_id}:stream/radstream-telemetry"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:GetObject"
+                    ],
+                    "Resource": f"arn:aws:s3:::radstream-*/*"
                 }
             ]
         }

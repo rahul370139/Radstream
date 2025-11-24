@@ -6,7 +6,7 @@ set -e  # Exit on error
 ECR_URI="222634400500.dkr.ecr.us-east-1.amazonaws.com/radstream-triton"
 REGION="us-east-1"
 IMAGE_NAME="radstream-triton"
-IMAGE_TAG="latest"
+IMAGE_TAG="cpu"
 
 echo "=========================================="
 echo "RadStream Container Build & Push Script"
@@ -40,9 +40,10 @@ echo ""
 cd "$(dirname "$0")/../.."  # Go to RadStream root directory
 
 docker build \
+    --platform linux/amd64 \
     -t ${IMAGE_NAME}:${IMAGE_TAG} \
     -f mukul/inference/Dockerfile.triton \
-    mukul/inference/
+    .
 
 if [ $? -ne 0 ]; then
     echo "❌ ERROR: Docker build failed!"

@@ -6,7 +6,7 @@ metadata:
   labels:
     app: radstream-triton
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: radstream-triton
@@ -17,7 +17,8 @@ spec:
     spec:
       containers:
       - name: triton-server
-        image: radstream-triton:latest
+        image: 222634400500.dkr.ecr.us-east-1.amazonaws.com/radstream-triton:cpu
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
           name: http
@@ -27,13 +28,11 @@ spec:
           name: metrics
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "1000m"
-            nvidia.com/gpu: 1
+            memory: "512Mi"
+            cpu: "250m"
           limits:
-            memory: "4Gi"
-            cpu: "2000m"
-            nvidia.com/gpu: 1
+            memory: "1Gi"
+            cpu: "500m"
         env:
         - name: TRITON_MODEL_STORE
           value: "/models"
@@ -59,18 +58,6 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        volumeMounts:
-        - name: model-storage
-          mountPath: /models
-      volumes:
-      - name: model-storage
-        emptyDir: {}
-      nodeSelector:
-        accelerator: nvidia-tesla-t4
-      tolerations:
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
 ---
 apiVersion: v1
 kind: Service
@@ -95,7 +82,7 @@ spec:
     port: 8002
     targetPort: 8002
     protocol: TCP
-  type: ClusterIP
+  type: LoadBalancer
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

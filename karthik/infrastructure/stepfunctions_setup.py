@@ -127,25 +127,13 @@ class StepFunctionsSetup:
                 },
                 "InvokeInference": {
                     "Type": "Task",
-                    "Resource": "arn:aws:states:::eks:runJob.sync",
-                    "Parameters": {
-                        "ClusterName": "radstream-cluster",
-                        "JobDefinition": "radstream-inference-job",
-                        "JobName": "radstream-inference-{}.{}".format("$.studyId", "$$.Execution.Name"),
-                        "JobQueue": "radstream-queue",
-                        "Parameters": {
-                            "studyId": "$.studyId",
-                            "bucket": "$.bucket",
-                            "key": "$.key",
-                            "preprocessedData": "$.preprocessing.preprocessedData"
-                        }
-                    },
+                    "Resource": "arn:aws:lambda:us-east-1:{}:function:radstream-invoke-triton".format(self.account_id),
                     "Next": "StoreResults",
                     "Retry": [
                         {
-                            "ErrorEquals": ["States.ALL"],
-                            "IntervalSeconds": 5,
-                            "MaxAttempts": 2,
+                            "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException"],
+                            "IntervalSeconds": 2,
+                            "MaxAttempts": 3,
                             "BackoffRate": 2.0
                         }
                     ],

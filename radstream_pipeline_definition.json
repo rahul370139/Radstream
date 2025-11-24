@@ -1,0 +1,186 @@
+{
+  "Comment": "RadStream Medical Imaging Pipeline - Orchestrates image processing workflow",
+  "StartAt": "ValidateInput",
+  "States": {
+    "ValidateInput": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:222634400500:function:radstream-validate-metadata",
+      "Next": "CheckValidationResult",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "HandleValidationError",
+          "ResultPath": "$.error"
+        }
+      ],
+      "ResultPath": "$.validation"
+    },
+    "CheckValidationResult": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.validation.valid",
+          "BooleanEquals": true,
+          "Next": "PrepareImage"
+        }
+      ],
+      "Default": "HandleValidationError"
+    },
+    "PrepareImage": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:222634400500:function:radstream-prepare-tensors",
+      "Next": "InvokeInference",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "HandlePreprocessingError",
+          "ResultPath": "$.error"
+        }
+      ],
+      "ResultPath": "$.preprocessing"
+    },
+    "InvokeInference": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:222634400500:function:radstream-invoke-triton",
+      "Next": "StoreResults",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "HandleInferenceError",
+          "ResultPath": "$.error"
+        }
+      ],
+      "ResultPath": "$.inference"
+    },
+    "StoreResults": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:222634400500:function:radstream-store-results",
+      "Next": "SendTelemetry",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "HandleStorageError",
+          "ResultPath": "$.error"
+        }
+      ],
+      "ResultPath": "$.storage"
+    },
+    "SendTelemetry": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:222634400500:function:radstream-send-telemetry",
+      "Next": "PipelineComplete",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "PipelineComplete",
+          "ResultPath": "$.telemetryError"
+        }
+      ],
+      "ResultPath": "$.telemetry"
+    },
+    "PipelineComplete": {
+      "Type": "Succeed",
+      "Output": {
+        "studyId": "$.studyId",
+        "status": "completed",
+        "timestamp": "$$.State.EnteredTime",
+        "results": "$.storage.results",
+        "telemetry": "$.telemetry"
+      }
+    },
+    "HandleValidationError": {
+      "Type": "Fail",
+      "Cause": "Validation failed",
+      "Error": "ValidationError",
+      "Comment": "Input validation failed - check metadata format"
+    },
+    "HandlePreprocessingError": {
+      "Type": "Fail",
+      "Cause": "Image preprocessing failed",
+      "Error": "PreprocessingError",
+      "Comment": "Failed to preprocess image - check image format and size"
+    },
+    "HandleInferenceError": {
+      "Type": "Fail",
+      "Cause": "Model inference failed",
+      "Error": "InferenceError",
+      "Comment": "Failed to run inference - check EKS cluster and model"
+    },
+    "HandleStorageError": {
+      "Type": "Fail",
+      "Cause": "Result storage failed",
+      "Error": "StorageError",
+      "Comment": "Failed to store results - check S3 permissions"
+    }
+  }
+}

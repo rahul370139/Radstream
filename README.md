@@ -18,8 +18,21 @@ RadStream processes medical images through a serverless workflow, performs AI in
 ## 🏗️ Architecture
 
 ```
-Medical Images → S3 → EventBridge → Step Functions → Lambda → EKS → Kinesis → S3 Data Lake → Athena → QuickSight
+Medical Images → S3 → EventBridge → Step Functions → Lambda → Triton (EKS) → Lambda (CheXpert Mapping) → S3 Results → Kinesis → S3 Data Lake → Athena → QuickSight
 ```
+
+### Current Pipeline Flow
+
+1. **Image Upload**: Medical images uploaded to S3 with JSON metadata
+2. **EventBridge Trigger**: S3 event triggers Step Functions state machine
+3. **Validation**: Lambda validates metadata format
+4. **Preprocessing**: Lambda preprocesses image (resize, normalize, convert to grayscale)
+5. **Inference**: Lambda calls Triton Inference Server on EKS
+   - Triton returns 18 TXR logits
+   - Lambda maps to 14 CheXpert labels
+6. **Storage**: Lambda stores results in S3
+7. **Telemetry**: Lambda sends telemetry to Kinesis
+8. **Analytics**: Kinesis → Firehose → S3 → Athena → QuickSight
 
 ### Core Components
 
@@ -47,33 +60,55 @@ Medical Images → S3 → EventBridge → Step Functions → Lambda → EKS → 
    cd Radstream
    ```
 
-2. **Install Python dependencies**
+2. **Set up Python virtual environment**
    ```bash
-   pip install -r shared/requirements.txt
+   # Create virtual environment
+   python3 -m venv venv
+   
+   # Activate virtual environment
+   source venv/bin/activate
+   # or
+   source activate_venv.sh
+   
+   # Install dependencies
+   pip install boto3 botocore requests numpy scipy torch torchvision torchxrayvision onnx onnxruntime
    ```
 
 3. **Set up AWS infrastructure** (Karthik's responsibility)
    ```bash
+   # Activate virtual environment first
+   source venv/bin/activate
+   
    # Create S3 buckets
-   python karthik/infrastructure/s3_setup.py
+   python3 karthik/infrastructure/s3_setup.py
    
    # Set up EventBridge rules
-   python karthik/infrastructure/eventbridge_setup.py
+   python3 karthik/infrastructure/eventbridge_setup.py
    
    # Create Step Functions workflow
-   python karthik/infrastructure/stepfunctions_setup.py
+   python3 karthik/infrastructure/stepfunctions_setup.py
    
-   # Deploy Lambda functions
-   python karthik/infrastructure/lambda_setup.py
+   # Deploy Lambda functions (includes Triton inference Lambda)
+   python3 karthik/infrastructure/lambda_setup.py
    
    # Set up Kinesis streams
-   python karthik/infrastructure/kinesis_setup.py
-   
-   # Create Glue schema (Rahul's responsibility)
-   python rahul/telemetry/glue_schema.py
+   python3 karthik/infrastructure/kinesis_setup.py
    ```
 
-4. **Deploy EKS cluster and Triton Inference Server** (Karthik's responsibility)
+4. **Export ONNX Model** (Rahul's responsibility)
+   ```bash
+   # Activate virtual environment
+   source venv/bin/activate
+   
+   # Export TorchXRayVision model to ONNX
+   python3 rahul/scripts/export_txr_to_onnx.py \
+       --opset-version 12 \
+       --output model_repo/chexpert_classifier/1/model.onnx \
+       --model-repo model_repo \
+       --model-name chexpert_classifier
+   ```
+
+5. **Deploy EKS cluster and Triton Inference Server** (Karthik's responsibility)
    ```bash
    # Create EKS cluster (if not exists)
    eksctl create cluster --name radstream-cluster --region us-east-1
@@ -87,25 +122,26 @@ Medical Images → S3 → EventBridge → Step Functions → Lambda → EKS → 
      --managed
    
    # Build and push Triton CPU image
-   docker build -t radstream-triton:cpu -f mukul/inference/Dockerfile.triton .
-   docker tag radstream-triton:cpu <account-id>.dkr.ecr.us-east-1.amazonaws.com/radstream-triton:cpu
-   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
-   docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/radstream-triton:cpu
+   bash rahul/scripts/build_and_push_container.sh
    
    # Deploy Triton to EKS
    kubectl apply -f mukul/inference/deploy_manifest.yaml
    
-   # Create LoadBalancer service
-   kubectl apply -f mukul/inference/triton_service.yaml
+   # Verify deployment
+   kubectl get pods -n radstream
+   kubectl get svc -n radstream radstream-triton-service
    ```
 
-5. **Test the pipeline**
+6. **Test the end-to-end pipeline**
    ```bash
-   # Upload test images
-   python rahul/scripts/upload_images.py --num-images 10
+   # Activate virtual environment
+   source venv/bin/activate
    
-   # Run benchmark
-   python rahul/scripts/benchmark.py --num-studies 5
+   # Run end-to-end test with Triton inference
+   python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigger
+   
+   # Or upload test images
+   python3 rahul/scripts/upload_images.py --num-images 10
    ```
 
 ## 📁 Project Structure
@@ -115,7 +151,6 @@ RadStream/
 ├── shared/                    # Common documentation
 │   ├── docs/                 # All documentation
 │   │   ├── architecture.md
-│   │   ├── PROGRESS_REPORT.md
 │   │   └── evaluation_plan.md
 │   └── requirements.txt
 ├── rahul/                    # Rahul's implementations
@@ -124,20 +159,20 @@ RadStream/
 │   │   ├── prepare_tensors.py
 │   │   ├── store_results.py
 │   │   ├── send_telemetry.py
-│   │   └── requirements.txt
-│   ├── telemetry/            # Monitoring & logging
-│   │   ├── kinesis_producer.py
-│   │   ├── glue_schema.py
-│   │   └── athena_queries.sql
+│   │   ├── invoke_triton_inference.py  # NEW: Triton inference Lambda
+│   │   ├── requirements.txt
+│   │   └── requirements_triton.txt     # NEW: Triton Lambda dependencies
 │   ├── scripts/              # Helper scripts
+│   │   ├── export_txr_to_onnx.py       # NEW: ONNX model export
+│   │   ├── build_and_push_container.sh # NEW: Container build script
+│   │   ├── test_end_to_end_triton.py  # NEW: E2E test with Triton
 │   │   ├── upload_images.py
-│   │   ├── benchmark.py
-│   │   └── test_pipeline.py
+│   │   └── benchmark.py
+│   ├── AWS_STATUS_SUMMARY.md # Status tracking document
 │   └── README.md
 ├── mukul/                    # Mukul's implementations
 │   ├── inference/            # EKS/model serving
 │   │   ├── Dockerfile.triton
-│   │   ├── model_config.pbtxt
 │   │   ├── health_check.py
 │   │   ├── start_triton.sh
 │   │   └── deploy_manifest.yaml
@@ -152,22 +187,32 @@ RadStream/
 │   ├── security/             # Security & compliance
 │   │   └── iam_roles.json
 │   └── README.md
+├── model_repo/               # NEW: ONNX model repository
+│   └── chexpert_classifier/
+│       ├── 1/
+│       │   └── model.onnx
+│       ├── config.pbtxt
+│       └── label_mapping.json
+├── venv/                     # NEW: Python virtual environment
+├── activate_venv.sh          # NEW: Virtual environment activation script
+├── TRITON_INTEGRATION_COMPLETE.md  # NEW: Integration documentation
 ├── .github/                  # GitHub workflows and templates
 │   ├── workflows/
 │   └── ISSUE_TEMPLATE/
 ├── CONTRIBUTING.md
-├── PROGRESS_REPORT.md
 └── README.md
 ```
 
 ## 👥 Team Responsibilities
 
 ### Rahul Sharma — Data & Serving Performance Lead
-- S3 buckets and EventBridge setup
-- Lambda functions development
-- Step Functions workflow design
-- Telemetry pipeline and data lake
-- Performance benchmarking
+- ✅ S3 buckets and EventBridge setup
+- ✅ Lambda functions development (5 functions including Triton inference)
+- ✅ Step Functions workflow design and Triton integration
+- ✅ ONNX model export and containerization
+- ✅ Triton Inference Server deployment
+- ✅ CheXpert label mapping implementation
+- ⏳ Performance benchmarking (ready to test)
 
 ### Mukul Rayana — Platform & Autoscaling Lead
 - EKS cluster setup and management
@@ -205,17 +250,22 @@ export IMAGES_BUCKET=radstream-images-{account-id}
 
 ## 📊 Performance Metrics
 
+### Current Status
+- ✅ **Triton Inference**: Deployed and operational
+- ✅ **Pipeline Integration**: Complete end-to-end flow ready
+- ⏳ **Performance Testing**: Ready to run benchmarks
+
 ### Target Performance
-- **End-to-end latency**: < 5 seconds (p95)
-- **Throughput**: 10+ images/minute sustained
+- **End-to-end latency**: < 5 seconds (p95) - Ready to test
+- **Throughput**: 10+ images/minute sustained - Ready to test
 - **Availability**: 99.9% uptime
 - **Cost per image**: < $0.002
 
 ### Monitoring
 - CloudWatch dashboards for real-time metrics
-- X-Ray tracing for request flow analysis
+- Kinesis telemetry streaming operational
 - Custom metrics for business KPIs
-- QuickSight for data visualization
+- QuickSight dashboards (pending Glue setup)
 
 ## 🔒 Security
 
@@ -251,15 +301,24 @@ export IMAGES_BUCKET=radstream-images-{account-id}
 
 ### Test Scripts
 ```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Test end-to-end pipeline with Triton inference
+python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigger
+
 # Upload test images
-python rahul/scripts/upload_images.py --num-images 100 --batch-size 10
+python3 rahul/scripts/upload_images.py --num-images 100 --batch-size 10
 
 # Run performance benchmark
-python rahul/scripts/benchmark.py --num-studies 50 --concurrent 5
-
-# Test telemetry
-python rahul/telemetry/kinesis_producer.py
+python3 rahul/scripts/benchmark.py --num-studies 50 --concurrent 5
 ```
+
+### Current Test Status
+- ✅ **Lambda Functions**: All 5 functions deployed and configured
+- ✅ **Triton Inference**: Model loaded, inference tested successfully
+- ✅ **Step Functions**: State machine updated with Triton integration
+- ⏳ **End-to-End Test**: Ready to run (all components ready)
 
 ### A/B Testing Scenarios
 1. **Storage Performance**: S3 Standard vs S3 Express One Zone
@@ -322,9 +381,27 @@ aws stepfunctions list-executions --state-machine-arn <arn>
 ## 📚 Documentation
 
 - [Architecture Documentation](shared/docs/architecture.md)
-- [Progress Report & Task Breakdown](shared/docs/PROGRESS_REPORT.md)
+- [AWS Status Summary](rahul/AWS_STATUS_SUMMARY.md) - **Current project status and progress**
+- [Triton Integration Guide](TRITON_INTEGRATION_COMPLETE.md) - **Triton integration details**
 - [Evaluation Plan & A/B Testing](shared/docs/evaluation_plan.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
+
+## ✅ **Recent Accomplishments (November 24, 2025)**
+
+1. ✅ **ONNX Model Export**: TorchXRayVision DenseNet121 exported to ONNX (IR version 7)
+2. ✅ **Triton Deployment**: Triton Inference Server deployed on EKS, model loaded successfully
+3. ✅ **Triton Lambda**: Created `radstream-invoke-triton` Lambda with CheXpert label mapping
+4. ✅ **Step Functions Integration**: Updated state machine with Triton inference step
+5. ✅ **Virtual Environment**: Set up Python 3.13.9 venv with all dependencies
+6. ✅ **End-to-End Pipeline**: Complete flow ready for testing
+
+## 🎯 **Next Steps**
+
+1. **URGENT**: Run end-to-end pipeline test to verify full integration
+2. **HIGH PRIORITY**: Set up Glue & Athena for telemetry analytics
+3. **MEDIUM**: Create QuickSight dashboards
+4. **MEDIUM**: Configure AWS WAF for LoadBalancer
+5. **LOW**: Performance benchmarking and optimization
 
 ## 🤝 Contributing
 

@@ -56,13 +56,13 @@ def check_model_loading() -> bool:
             print("❌ No models loaded")
             return False
         
-        # Check if all expected models are loaded
-        expected_models = ['radstream_classifier', 'radstream_detector', 'radstream_encoder']
+        # Check if expected model is loaded
+        expected_model = 'chexpert_classifier'
         loaded_models = [model['name'] for model in models]
         
-        missing_models = set(expected_models) - set(loaded_models)
-        if missing_models:
-            print(f"❌ Missing models: {missing_models}")
+        if expected_model not in loaded_models:
+            print(f"❌ Missing model: {expected_model}")
+            print(f"   Loaded models: {loaded_models}")
             return False
         
         # Check if models are ready
@@ -96,10 +96,10 @@ def check_model_inference(model_name: str) -> bool:
         test_input = {
             "inputs": [
                 {
-                    "name": "input_image",
-                    "shape": [1, 3, 224, 224],
+                    "name": "input",
+                    "shape": [1, 1, 224, 224],
                     "datatype": "FP32",
-                    "data": [[0.0] * (3 * 224 * 224)]  # Dummy data
+                    "data": [[0.0] * (1 * 224 * 224)]  # Dummy grayscale data
                 }
             ]
         }
@@ -169,13 +169,9 @@ def main():
         print("❌ Model loading check failed")
         sys.exit(1)
     
-    # Test inference for each model
-    models_to_test = ['radstream_classifier', 'radstream_detector', 'radstream_encoder']
-    inference_ok = True
-    
-    for model_name in models_to_test:
-        if not check_model_inference(model_name):
-            inference_ok = False
+    # Test inference for the model
+    model_to_test = 'chexpert_classifier'
+    inference_ok = check_model_inference(model_to_test)
     
     if not inference_ok:
         print("❌ Model inference tests failed")

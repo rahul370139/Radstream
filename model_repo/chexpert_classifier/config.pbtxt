@@ -1,0 +1,27 @@
+name: "chexpert_classifier"
+platform: "onnxruntime_onnx"
+max_batch_size: 8
+input [
+  {
+    name: "input"
+    data_type: TYPE_FP32
+    dims: [ 1, 224, 224 ]  # Grayscale: 1 channel, 224x224
+  }
+]
+output [
+  {
+    name: "output"
+    data_type: TYPE_FP32
+    dims: [ 18 ]  # 18 TorchXRayVision pathologies
+  }
+]
+dynamic_batching {
+  max_queue_delay_microseconds: 10000
+  preferred_batch_size: [ 1, 2, 4 ]
+}
+instance_group [
+  {
+    count: 1
+    kind: KIND_CPU
+  }
+]

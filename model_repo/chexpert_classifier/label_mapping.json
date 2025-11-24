@@ -1,0 +1,51 @@
+{
+  "txr_pathologies": [
+    "Atelectasis",
+    "Consolidation",
+    "",
+    "Pneumothorax",
+    "Edema",
+    "",
+    "",
+    "Effusion",
+    "Pneumonia",
+    "",
+    "Cardiomegaly",
+    "",
+    "",
+    "",
+    "Lung Lesion",
+    "Fracture",
+    "Lung Opacity",
+    "Enlarged Cardiomediastinum"
+  ],
+  "chexpert13_labels": [
+    "Enlarged Cardiomediastinum",
+    "Cardiomegaly",
+    "Lung Opacity",
+    "Lung Lesion",
+    "Edema",
+    "Consolidation",
+    "Pneumonia",
+    "Atelectasis",
+    "Pneumothorax",
+    "Pleural Effusion",
+    "Pleural Other",
+    "Fracture",
+    "Support Devices"
+  ],
+  "chexpert_to_txr_index": {
+    "Enlarged Cardiomediastinum": 17,
+    "Cardiomegaly": 10,
+    "Lung Opacity": 16,
+    "Lung Lesion": 14,
+    "Edema": 4,
+    "Consolidation": 1,
+    "Pneumonia": 8,
+    "Atelectasis": 0,
+    "Pneumothorax": 3,
+    "Pleural Effusion": 7,
+    "Fracture": 15
+  },
+  "notes": "Apply sigmoid to ONNX outputs, gather logits using mapping above, then derive 'No Finding' downstream."
+}

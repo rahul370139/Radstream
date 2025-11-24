@@ -1,0 +1,46 @@
+{
+  "Comment": "RadStream Error Handling Workflow - Processes failed pipeline executions",
+  "StartAt": "AnalyzeError",
+  "States": {
+    "AnalyzeError": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:222634400500:function:radstream-analyze-error",
+      "Next": "DetermineAction",
+      "ResultPath": "$.errorAnalysis"
+    },
+    "DetermineAction": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.errorAnalysis.severity",
+          "StringEquals": "HIGH",
+          "Next": "SendAlert"
+        },
+        {
+          "Variable": "$.errorAnalysis.severity",
+          "StringEquals": "MEDIUM",
+          "Next": "LogError"
+        }
+      ],
+      "Default": "LogError"
+    },
+    "SendAlert": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:us-east-1:222634400500:radstream-alerts",
+        "Message": "High severity error in RadStream pipeline",
+        "Subject": "RadStream Pipeline Alert"
+      },
+      "Next": "LogError"
+    },
+    "LogError": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:222634400500:function:radstream-log-error",
+      "Next": "End"
+    },
+    "End": {
+      "Type": "Succeed"
+    }
+  }
+}

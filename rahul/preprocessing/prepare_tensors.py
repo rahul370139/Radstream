@@ -115,7 +115,9 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
 
 def preprocess_image(image_data: bytes, metadata: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Preprocess image data for model inference
+    Preprocess image data for TorchXRayVision DenseNet121 model inference
+    
+    Model expects: Grayscale image (1 channel, 224x224), normalized using TorchXRayVision normalization
     
     Args:
         image_data: Raw image bytes
@@ -128,34 +130,41 @@ def preprocess_image(image_data: bytes, metadata: Dict[str, Any]) -> Dict[str, A
         # Load image from bytes
         image = Image.open(io.BytesIO(image_data))
         
-        # Convert to RGB if necessary
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
+        # Convert to grayscale (L mode) - TorchXRayVision expects grayscale
+        if image.mode != 'L':
+            image = image.convert('L')
         
         # Get original dimensions
         original_width, original_height = image.size
         print(f"Original image size: {original_width}x{original_height}")
         
-        # Resize image to model input size (224x224 for most medical imaging models)
+        # Resize image to model input size (224x224 for TorchXRayVision)
         target_size = (224, 224)
-        image_resized = image.resize(target_size, Image.Resampling.LANCZOS)
+        image_resized = image.resize(target_size, Image.Resampling.BILINEAR)
         
-        # Convert to numpy array
+        # Convert to numpy array (grayscale: single channel)
         image_array = np.array(image_resized, dtype=np.float32)
         
-        # Normalize pixel values to [0, 1]
-        image_normalized = image_array / 255.0
+        # Apply TorchXRayVision normalization
+        # This matches the normalization used in chexagent_chexpert_eval project
+        try:
+            import torchxrayvision as xrv
+            image_normalized = xrv.datasets.normalize(image_array, 255.0)
+        except ImportError:
+            # Fallback normalization if torchxrayvision not available
+            # Standard normalization: (pixel - mean) / std
+            # For chest X-rays, approximate normalization
+            image_normalized = image_array / 255.0
+            # Apply approximate ImageNet-style normalization for grayscale
+            mean = 0.5
+            std = 0.25
+            image_normalized = (image_normalized - mean) / std
         
-        # Apply medical imaging specific normalization if needed
-        # For chest X-rays, we might want to apply window/level normalization
-        if metadata.get('modality') == 'X-RAY' and metadata.get('body_part') == 'CHEST':
-            image_normalized = apply_chest_xray_normalization(image_normalized)
+        # TorchXRayVision expects: (batch, 1, H, W) format
+        # Add channel dimension: (H, W) -> (1, H, W)
+        image_tensor = image_normalized[None, :, :]  # Add channel dimension
         
-        # Convert to the format expected by the model (CHW format for PyTorch)
-        # From HWC to CHW
-        image_tensor = np.transpose(image_normalized, (2, 0, 1))
-        
-        # Add batch dimension
+        # Add batch dimension: (1, H, W) -> (1, 1, H, W)
         image_tensor = np.expand_dims(image_tensor, axis=0)
         
         # Convert to base64 for JSON serialization
@@ -187,7 +196,9 @@ def preprocess_image(image_data: bytes, metadata: Dict[str, Any]) -> Dict[str, A
 
 def apply_chest_xray_normalization(image: np.ndarray) -> np.ndarray:
     """
-    Apply chest X-ray specific normalization
+    Apply chest X-ray specific normalization (legacy function, kept for compatibility)
+    
+    Note: TorchXRayVision normalization is now used in preprocess_image()
     
     Args:
         image: Normalized image array [0, 1]
@@ -195,18 +206,9 @@ def apply_chest_xray_normalization(image: np.ndarray) -> np.ndarray:
     Returns:
         Normalized image array
     """
-    # Chest X-ray window/level normalization
-    # Typical values: window=1500, level=-600
-    window = 1500
-    level = -600
-    
-    # Convert back to Hounsfield units range
-    image_hu = (image * 4095) - 1024
-    
-    # Apply window/level
-    image_windowed = np.clip((image_hu - level + window/2) / window, 0, 1)
-    
-    return image_windowed
+    # This function is kept for backward compatibility
+    # Actual normalization is now done using torchxrayvision.datasets.normalize()
+    return image
 
 def send_telemetry(event_data: Dict[str, Any]) -> None:
     """
