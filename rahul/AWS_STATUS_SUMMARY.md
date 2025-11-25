@@ -1,6 +1,6 @@
 # AWS Resources Status Summary
 
-**Last Updated**: November 24, 2025, 21:45 UTC  
+**Last Updated**: November 25, 2025, 05:00 UTC  
 **Account**: 222634400500  
 **Region**: us-east-1  
 **Project**: RadStream - Cloud-Native Medical Imaging Inference & Telemetry
@@ -9,35 +9,37 @@
 
 ## 📊 **EXECUTIVE SUMMARY**
 
-**Overall Progress**: ✅ **Triton Integration Complete!** The end-to-end pipeline is now fully integrated with Triton Inference Server. All components are deployed and ready for testing.
+**Overall Progress**: ✅ **End-to-End Pipeline Operational!** The complete pipeline from S3 upload to results storage is now fully functional with Triton inference. All critical components are deployed, tested, and working.
 
-**Infrastructure Status**: ✅ **21/21 Core Resources Deployed**  
-**Lambda Functions**: ✅ **5/5 Deployed** (including new Triton inference Lambda)  
+**Infrastructure Status**: ✅ **22/22 Core Resources Deployed**  
+**Lambda Functions**: ✅ **5/5 Deployed & Tested** (all functions working correctly)  
 **Triton Inference**: ✅ **Deployed & Running on EKS**  
-**Step Functions**: ✅ **Updated with Triton Integration**  
-**End-to-End Pipeline**: ✅ **Ready for Testing** (with full Triton inference)
+**Step Functions**: ✅ **Fully Integrated & Tested**  
+**End-to-End Pipeline**: ✅ **COMPLETED & VERIFIED** (successful test execution)
+**CloudWatch Dashboards**: ✅ **1 Dashboard Created** (Radstream-Monitoring)
 
 ---
 
 ## ✅ **WHAT HAS BEEN DONE SO FAR**
 
-### **Infrastructure Components - Completed (21/21)**
+### **Infrastructure Components - Completed (22/22)**
 
 | Component | Count | Status | Owner | Details |
 |-----------|-------|--------|-------|---------|
 | S3 Buckets | 4/4 | ✅ Complete | Rahul | All buckets created with encryption, versioning, EventBridge notifications |
-| Lambda Functions | 5/5 | ✅ Complete | Rahul | All functions deployed including `radstream-invoke-triton` |
-| Lambda Layers | 2/2 | ✅ Complete | Rahul | Pillow and NumPy layers created and attached |
-| IAM Roles | 8/8 | ✅ Complete | Karthik/Rahul | All roles created including `RadStreamInvokeTritonRole` |
+| Lambda Functions | 5/5 | ✅ Complete | Rahul | All functions deployed, tested, and working correctly |
+| Lambda Layers | 2/2 | ✅ Complete | Rahul | Pillow and NumPy layers created (now using self-contained packages) |
+| IAM Roles | 8/8 | ✅ Complete | Karthik/Rahul | All roles created with proper permissions (including artifacts bucket) |
 | EventBridge Rules | 3/3 | ✅ Complete | Karthik | Rules enabled with Step Functions targets configured |
-| Step Functions | 1/1 | ✅ Complete | Karthik/Rahul | State machine updated with Triton integration |
+| Step Functions | 1/1 | ✅ Complete | Karthik/Rahul | State machine fully integrated and tested |
 | Kinesis Streams | 1/1 | ✅ Complete | Karthik | Stream created and receiving telemetry data |
 | EKS Cluster | 1/1 | ✅ Complete | Karthik | Cluster created and active |
 | ECR Repository | 1/1 | ✅ Complete | Karthik | Repository created, container pushed |
 | Triton Deployment | 1/1 | ✅ Complete | Rahul | Triton deployed on EKS, model loaded successfully |
-| LoadBalancer Service | 1/1 | ✅ Complete | Karthik | Service exposed with external endpoint |
+| LoadBalancer Service | 1/1 | ✅ Complete | Karthik | Kubernetes LoadBalancer service exposed with external endpoint |
+| CloudWatch Dashboards | 1/1 | ✅ Complete | Karthik | Radstream-Monitoring dashboard created |
 
-### **Recent Major Accomplishments (November 24, 2025)**
+### **Recent Major Accomplishments (November 24-25, 2025)**
 
 #### 1. ✅ **ONNX Model Export & Preparation** (COMPLETED)
 - **Model**: TorchXRayVision DenseNet121 exported to ONNX format
@@ -81,6 +83,23 @@
 - **Dependencies Installed**: boto3, requests, numpy, scipy, torch, onnx, onnxruntime, torchxrayvision
 - **Activation Script**: `activate_venv.sh` created
 
+#### 6. ✅ **End-to-End Pipeline Test** (COMPLETED - November 25, 2025)
+- **Status**: ✅ **SUCCESSFUL** - Complete pipeline tested and verified
+- **Execution Time**: 3 seconds
+- **All States Completed**: ValidateInput → PrepareImage → InvokeInference → StoreResults → SendTelemetry
+- **Results**: Successfully stored in S3
+- **CheXpert Mapping**: Verified (18 TXR logits → 14 CheXpert labels)
+- **Issues Fixed**:
+  - ✅ IAM permission for artifacts bucket (s3:PutObject)
+  - ✅ Step Functions 256KB limit (preprocessed images stored in S3)
+  - ✅ Lambda packaging (Linux-compatible wheels)
+  - ✅ NumPy-based sigmoid (removed scipy dependency)
+
+#### 7. ✅ **CloudWatch Dashboard** (COMPLETED - Karthik)
+- **Dashboard Name**: `Radstream-Monitoring`
+- **Status**: ✅ Created and operational
+- **Metrics Tracked**: Lambda, Step Functions, Kinesis, EKS metrics
+
 ### **Testing & Validation - Completed**
 
 - ✅ **Lambda Function Testing**: All 5 functions deployed and configured
@@ -102,48 +121,31 @@
 
 ## 🎯 **WHAT NEEDS TO BE DONE NEXT**
 
-### **Phase 1: End-to-End Pipeline Testing** ⏳ **URGENT**
+### **Phase 1: Performance Benchmarking** ⏳ **HIGH PRIORITY**
 
-**Goal**: Test complete pipeline from S3 upload to results storage with Triton inference.
+**Goal**: Measure end-to-end latency with full Triton inference across multiple test cases.
 
 **Owner**: Rahul  
-**Timeline**: Immediate  
-**Priority**: URGENT - Verify full integration works
+**Timeline**: Week 2-3  
+**Priority**: HIGH PRIORITY
 
 **Tasks**:
-1. Upload test image to S3 (triggers EventBridge)
-2. Monitor Step Functions execution through all states
-3. Verify Triton inference is called successfully
-4. Check CheXpert label mapping works correctly
-5. Verify results stored in S3
-6. Confirm telemetry sent to Kinesis
+1. Run benchmark with multiple test images (10-50 images)
+2. Measure p50, p95, p99 latencies
+3. Compare with baseline (without inference)
+4. Document performance improvements
+5. Generate performance report
 
 **Test Command**:
 ```bash
 cd RadStream
 source venv/bin/activate
-python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigger
+python3 rahul/scripts/benchmark.py --num-studies 20 --concurrency 2
 ```
 
 ---
 
-### **Phase 2: Performance Benchmarking** ⏳
-
-**Goal**: Measure end-to-end latency with full Triton inference.
-
-**Owner**: Rahul  
-**Timeline**: After E2E test passes  
-**Priority**: High
-
-**Tasks**:
-1. Run benchmark with multiple test images
-2. Measure p50, p95, p99 latencies
-3. Compare with baseline (without inference)
-4. Document performance improvements
-
----
-
-### **Phase 3: Glue & Athena Setup** ⏳ **HIGH PRIORITY**
+### **Phase 2: Glue & Athena Setup** ⏳ **HIGH PRIORITY**
 
 **Goal**: Enable telemetry analytics and querying.
 
@@ -159,7 +161,7 @@ python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigg
 
 ---
 
-### **Phase 4: QuickSight Dashboards** ⏳
+### **Phase 3: QuickSight Dashboards** ⏳
 
 **Goal**: Create visual dashboards for performance and security metrics.
 
@@ -167,15 +169,17 @@ python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigg
 **Timeline**: Week 3-4  
 **Priority**: Medium
 
+**Status**: ⏳ **In Progress** (QuickSight setup may be partially done)
+
 **Tasks**:
-1. Set up QuickSight account (free tier)
-2. Connect to Athena as data source
-3. Create Performance Dashboard
-4. Create Security Dashboard (after WAF setup)
+1. ✅ Set up QuickSight account (free tier) - **Verify if completed**
+2. ⏳ Connect to Athena as data source - **Waiting for Glue setup**
+3. ⏳ Create Performance Dashboard
+4. ⏳ Create Security Dashboard (after WAF setup)
 
 ---
 
-### **Phase 5: Security Enhancements** ⏳
+### **Phase 4: Security Enhancements** ⏳
 
 **Goal**: Implement WAF, GuardDuty, and security testing.
 
@@ -184,10 +188,12 @@ python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigg
 **Priority**: Medium
 
 **Tasks**:
-1. Configure AWS WAF for LoadBalancer
-2. Enable GuardDuty
-3. Security testing (SQL injection, XSS)
-4. Document security findings
+1. ⏳ Configure AWS WAF for Application Load Balancer (ALB) - **NOT STARTED**
+   - **Note**: Kubernetes LoadBalancer exists, but ALB with WAF not yet configured
+   - **Action**: Create ALB, attach WAF Web ACL, route traffic through ALB
+2. ⏳ Enable GuardDuty
+3. ⏳ Security testing (SQL injection, XSS)
+4. ⏳ Document security findings
 
 ---
 
@@ -242,26 +248,25 @@ python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigg
 
 #### **Immediate Next Steps (This Week)**
 
-1. **End-to-End Pipeline Test** ⏳ **URGENT**
-   - **Task**: Test complete pipeline with Triton inference
-   - **Script**: `rahul/scripts/test_end_to_end_triton.py`
+1. ✅ **End-to-End Pipeline Test** ✅ **COMPLETED**
+   - **Status**: ✅ Successfully tested on November 25, 2025
+   - **Result**: All 5 states completed successfully in 3 seconds
+   - **Verification**: Results stored in S3, CheXpert mapping verified
+
+2. ✅ **Verify CheXpert Mapping** ✅ **COMPLETED**
+   - **Status**: ✅ Verified - 18 TXR logits → 14 CheXpert labels working correctly
+   - **Result**: Lambda function correctly maps logits to CheXpert labels
+
+3. **Performance Benchmarking** ⏳ **HIGH PRIORITY**
+   - **Task**: Run comprehensive benchmarks with multiple test images
+   - **Script**: `rahul/scripts/benchmark.py`
    - **Actions**:
      ```bash
      source venv/bin/activate
-     python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigger
+     python3 rahul/scripts/benchmark.py --num-studies 20 --concurrency 2
      ```
-   - **Timeline**: Immediate
-   - **Dependency**: None (everything is ready)
-
-2. **Verify CheXpert Mapping** ⏳
-   - **Task**: Verify 18 TXR logits → 14 CheXpert labels mapping works correctly
-   - **Actions**: Check Lambda logs and results
-   - **Timeline**: After E2E test
-
-3. **Performance Benchmarking** ⏳
-   - **Task**: Run comprehensive benchmarks
-   - **Script**: `rahul/scripts/benchmark.py`
    - **Timeline**: Week 2-3
+   - **Goal**: Measure p50, p95, p99 latencies and document performance
 
 ---
 
@@ -284,8 +289,19 @@ python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigg
    - Container images pushed
 
 4. ✅ **LoadBalancer Service**
-   - Triton service exposed with LoadBalancer
-   - External endpoint available
+   - Triton service exposed with Kubernetes LoadBalancer
+   - External endpoint: `abb2c3656a2744f8191015f5b516d8fc-1489982899.us-east-1.elb.amazonaws.com:8000`
+   - **Note**: This is a Kubernetes LoadBalancer, not an ALB
+
+5. ✅ **CloudWatch Dashboard** ✅ **COMPLETED**
+   - **Dashboard Name**: `Radstream-Monitoring`
+   - **Status**: Created and operational
+   - **Metrics**: Lambda, Step Functions, Kinesis, EKS metrics
+   - **Location**: CloudWatch Console → Dashboards
+
+6. ⏳ **QuickSight Setup** ⏳ **IN PROGRESS**
+   - **Status**: May be partially completed (needs verification)
+   - **Action Required**: Verify if QuickSight account is set up and connected to Athena
 
 ### **⏳ What Karthik Needs to Do Next**
 
@@ -296,21 +312,35 @@ python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigg
    - **Script**: `rahul/telemetry/glue_schema.py` (exists, needs execution)
    - **Timeline**: Week 2-3
    - **Dependency**: None (can proceed now)
+   - **Action**: Execute Glue setup script to enable Athena queries
 
-2. **CloudWatch Dashboards** ⏳
-   - **Task**: Create dashboards for Lambda, EKS, Kinesis metrics
+2. **QuickSight Dashboards** ⏳ **MEDIUM PRIORITY**
+   - **Task**: Complete QuickSight setup and create performance dashboards
+   - **Status**: Account setup may be done (needs verification)
    - **Timeline**: Week 3-4
-   - **Dependency**: None
+   - **Dependency**: Glue & Athena setup (must complete first)
+   - **Actions**:
+     1. Verify QuickSight account is active
+     2. Connect to Athena as data source (after Glue setup)
+     3. Create Performance Dashboard
+     4. Create Security Dashboard (after WAF setup)
 
-3. **QuickSight Dashboards** ⏳
-   - **Task**: Set up QuickSight and create performance dashboards
-   - **Timeline**: Week 3-4
-   - **Dependency**: Glue & Athena setup
-
-4. **AWS WAF Configuration** ⏳
-   - **Task**: Create WAF Web ACL and attach to LoadBalancer
+3. **AWS WAF Configuration** ⏳ **MEDIUM PRIORITY**
+   - **Task**: Create WAF Web ACL and attach to Application Load Balancer (ALB)
+   - **Status**: ⚠️ **NOT STARTED** - ALB not yet created
+   - **Current State**: Kubernetes LoadBalancer exists, but ALB with WAF not configured
    - **Timeline**: Week 4-5
-   - **Dependency**: LoadBalancer (✅ Done)
+   - **Actions Required**:
+     1. Create Application Load Balancer (ALB) in front of EKS service
+     2. Create WAF Web ACL with managed rules
+     3. Attach WAF to ALB
+     4. Update Triton endpoint configuration to use ALB
+   - **Note**: This is different from the existing Kubernetes LoadBalancer
+
+4. **GuardDuty & CloudTrail** ⏳ **LOW PRIORITY**
+   - **Task**: Enable GuardDuty and configure CloudTrail
+   - **Timeline**: Week 5-6
+   - **Dependency**: None
 
 ---
 
@@ -379,10 +409,12 @@ python3 rahul/scripts/test_end_to_end_triton.py --study-id TEST-001 --auto-trigg
 | ECR Repository | ✅ Complete | Karthik | - | Repository ready |
 | Triton Deployment | ✅ Complete | Rahul | - | Running on EKS, model loaded |
 | LoadBalancer | ✅ Complete | Karthik | - | External endpoint available |
-| End-to-End Testing | ⏳ **Ready** | Rahul | - | **URGENT**: Test full pipeline |
-| Glue Data Catalog | ⏳ Pending | Karthik | - | HIGH PRIORITY (can proceed now) |
-| QuickSight Dashboards | ⏳ Pending | Karthik | Glue + Athena | Waiting for Glue setup |
-| WAF Configuration | ⏳ Pending | Karthik | - | Can proceed now |
+| End-to-End Testing | ✅ **Complete** | Rahul | - | ✅ Tested successfully on Nov 25 |
+| CloudWatch Dashboards | ✅ **Complete** | Karthik | - | ✅ Radstream-Monitoring created |
+| Glue Data Catalog | ⏳ Pending | Karthik | - | **HIGH PRIORITY** (can proceed now) |
+| QuickSight Dashboards | ⏳ In Progress | Karthik | Glue + Athena | Waiting for Glue setup |
+| WAF Configuration | ⏳ Pending | Karthik | - | **ALB not created yet** (different from K8s LB) |
+| Performance Benchmarking | ⏳ Ready | Rahul | - | **HIGH PRIORITY** (can proceed now) |
 
 ---
 
@@ -499,18 +531,20 @@ Step Functions (radstream-pipeline)
 - ✅ End-to-end pipeline ready for testing
 
 **What's Next**:
-- ⏳ **URGENT**: Rahul - Run end-to-end pipeline test
+- ✅ **COMPLETED**: End-to-end pipeline test (November 25, 2025)
+- ⏳ **HIGH PRIORITY**: Rahul - Performance benchmarking (ready to proceed)
 - ⏳ **HIGH PRIORITY**: Karthik - Set up Glue and Athena (can proceed independently)
-- ⏳ Karthik - Create QuickSight dashboards (after Glue setup)
-- ⏳ All - Performance benchmarking and optimization
+- ⏳ Karthik - Complete QuickSight dashboards (after Glue setup)
+- ⏳ Karthik - Create ALB and configure WAF (different from existing K8s LoadBalancer)
 
 **Current State**: 
 - ✅ All core components deployed and integrated
 - ✅ Triton inference fully integrated into pipeline
-- ✅ System ready for end-to-end testing
-- ⏳ **URGENT**: Test complete pipeline flow
+- ✅ End-to-end pipeline tested and verified (SUCCESS)
+- ✅ CloudWatch dashboard created
+- ⏳ **HIGH PRIORITY**: Performance benchmarking and Glue/Athena setup
 
 ---
 
-**Last Updated**: November 24, 2025, 21:45 UTC  
+**Last Updated**: November 25, 2025, 05:00 UTC  
 **Document Maintained By**: Rahul Sharma

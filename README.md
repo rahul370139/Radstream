@@ -386,22 +386,28 @@ aws stepfunctions list-executions --state-machine-arn <arn>
 - [Evaluation Plan & A/B Testing](shared/docs/evaluation_plan.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
 
-## ✅ **Recent Accomplishments (November 24, 2025)**
+## ✅ **Recent Accomplishments (November 24-25, 2025)**
 
 1. ✅ **ONNX Model Export**: TorchXRayVision DenseNet121 exported to ONNX (IR version 7)
 2. ✅ **Triton Deployment**: Triton Inference Server deployed on EKS, model loaded successfully
 3. ✅ **Triton Lambda**: Created `radstream-invoke-triton` Lambda with CheXpert label mapping
 4. ✅ **Step Functions Integration**: Updated state machine with Triton inference step
 5. ✅ **Virtual Environment**: Set up Python 3.13.9 venv with all dependencies
-6. ✅ **End-to-End Pipeline**: Complete flow ready for testing
+6. ✅ **End-to-End Pipeline Test**: **COMPLETED** - Successfully tested on November 25, 2025
+   - All 5 states completed successfully (3 seconds execution time)
+   - Results stored in S3, CheXpert mapping verified
+   - Issues resolved: IAM permissions, Step Functions 256KB limit, Lambda packaging
+7. ✅ **CloudWatch Dashboard**: Created `Radstream-Monitoring` dashboard (Karthik)
+8. ✅ **Lambda Packaging**: Fixed with Linux-compatible wheels and self-contained packages
 
 ## 🎯 **Next Steps**
 
-1. **URGENT**: Run end-to-end pipeline test to verify full integration
-2. **HIGH PRIORITY**: Set up Glue & Athena for telemetry analytics
-3. **MEDIUM**: Create QuickSight dashboards
-4. **MEDIUM**: Configure AWS WAF for LoadBalancer
-5. **LOW**: Performance benchmarking and optimization
+1. ✅ **COMPLETED**: End-to-end pipeline test (November 25, 2025)
+2. **HIGH PRIORITY**: Performance benchmarking (Rahul - ready to proceed)
+3. **HIGH PRIORITY**: Set up Glue & Athena for telemetry analytics (Karthik - can proceed independently)
+4. **MEDIUM**: Complete QuickSight dashboards (Karthik - after Glue setup)
+5. **MEDIUM**: Create ALB and configure AWS WAF (Karthik - ALB not yet created, different from K8s LoadBalancer)
+6. **LOW**: GuardDuty and CloudTrail setup (Karthik)
 
 ## 🤝 Contributing
 
