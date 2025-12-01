@@ -12,7 +12,7 @@ RadStream processes medical images through a serverless workflow, performs AI in
 - **Containerized Inference**: EKS with NVIDIA Triton Inference Server
 - **Real-time Telemetry**: Kinesis Data Streams and Firehose
 - **Data Lake Analytics**: S3, Glue, Athena, QuickSight
-- **Security First**: WAF, GuardDuty, CloudTrail, IAM least-privilege
+- **Security First**: Security Groups, GuardDuty, CloudTrail, IAM least-privilege (see [WAF_ALTERNATIVES.md](./WAF_ALTERNATIVES.md))
 - **Cost Optimized**: Designed for minimal cost while demonstrating benefits
 
 ## 🏗️ Architecture
@@ -44,6 +44,8 @@ Medical Images → S3 → EventBridge → Step Functions → Lambda → Triton (
 6. **Analytics**: Glue Data Catalog, Athena, and QuickSight for insights
 
 ## 🚀 Quick Start
+
+> **📖 For detailed setup instructions, see [SETUP_GUIDE.md](./SETUP_GUIDE.md)**
 
 ### Prerequisites
 
@@ -212,7 +214,8 @@ RadStream/
 - ✅ ONNX model export and containerization
 - ✅ Triton Inference Server deployment
 - ✅ CheXpert label mapping implementation
-- ⏳ Performance benchmarking (ready to test)
+- ✅ End-to-end pipeline testing (100% success rate)
+- ✅ Performance benchmarking (10 images, P95=5.68s, 100% success)
 
 ### Mukul Rayana — Platform & Autoscaling Lead
 - EKS cluster setup and management
@@ -252,8 +255,8 @@ export IMAGES_BUCKET=radstream-images-{account-id}
 
 ### Current Status
 - ✅ **Triton Inference**: Deployed and operational
-- ✅ **Pipeline Integration**: Complete end-to-end flow ready
-- ⏳ **Performance Testing**: Ready to run benchmarks
+- ✅ **Pipeline Integration**: Complete end-to-end flow tested and verified
+- ✅ **Performance Testing**: Completed (10 images, 100% success, P95=5.68s)
 
 ### Target Performance
 - **End-to-end latency**: < 5 seconds (p95) - Ready to test
@@ -318,7 +321,8 @@ python3 rahul/scripts/benchmark.py --num-studies 50 --concurrent 5
 - ✅ **Lambda Functions**: All 5 functions deployed and configured
 - ✅ **Triton Inference**: Model loaded, inference tested successfully
 - ✅ **Step Functions**: State machine updated with Triton integration
-- ⏳ **End-to-End Test**: Ready to run (all components ready)
+- ✅ **End-to-End Test**: Completed (100% success rate, 3 seconds execution)
+- ✅ **Performance Benchmarking**: Completed (10 images, P95=5.68s processing time)
 
 ### A/B Testing Scenarios
 1. **Storage Performance**: S3 Standard vs S3 Express One Zone
@@ -382,9 +386,9 @@ aws stepfunctions list-executions --state-machine-arn <arn>
 
 - [Architecture Documentation](shared/docs/architecture.md)
 - [AWS Status Summary](rahul/AWS_STATUS_SUMMARY.md) - **Current project status and progress**
-- [Triton Integration Guide](TRITON_INTEGRATION_COMPLETE.md) - **Triton integration details**
+- [Setup Guide](SETUP_GUIDE.md) - **Comprehensive setup instructions for pipeline recreation**
+- [WAF Alternatives](WAF_ALTERNATIVES.md) - **Cost-effective security solutions**
 - [Evaluation Plan & A/B Testing](shared/docs/evaluation_plan.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
 
 ## ✅ **Recent Accomplishments (November 24-25, 2025)**
 
@@ -397,17 +401,37 @@ aws stepfunctions list-executions --state-machine-arn <arn>
    - All 5 states completed successfully (3 seconds execution time)
    - Results stored in S3, CheXpert mapping verified
    - Issues resolved: IAM permissions, Step Functions 256KB limit, Lambda packaging
-7. ✅ **CloudWatch Dashboard**: Created `Radstream-Monitoring` dashboard (Karthik)
-8. ✅ **Lambda Packaging**: Fixed with Linux-compatible wheels and self-contained packages
+7. ✅ **Performance Benchmarking**: **COMPLETED** - November 25, 2025
+   - Tested with 10 real chest X-ray images from `chexagent_chexpert_eval/test_samples`
+   - **Success Rate**: 100% (10/10 tests passed)
+   - **Performance Metrics**:
+     - Processing Time: P50=5.40s, P95=5.68s, P99=5.68s
+     - Total Time: P50=5.82s, P95=6.51s, P99=6.51s
+     - Throughput: 0.17 studies/second
+   - Report saved to `benchmark_real_images.csv`
+8. ✅ **CloudWatch Dashboard**: Created `Radstream-Monitoring` dashboard (Karthik)
+9. ✅ **Lambda Packaging**: Fixed with Linux-compatible wheels and self-contained packages
+10. ✅ **Repository Cleanup**: Removed unused files, created setup guides
+11. ✅ **WAF Alternatives**: Documented cost-effective security alternatives (Security Groups)
+12. ✅ **Setup Automation**: Created comprehensive setup script and guide for easy pipeline recreation
 
 ## 🎯 **Next Steps**
 
-1. ✅ **COMPLETED**: End-to-end pipeline test (November 25, 2025)
-2. **HIGH PRIORITY**: Performance benchmarking (Rahul - ready to proceed)
-3. **HIGH PRIORITY**: Set up Glue & Athena for telemetry analytics (Karthik - can proceed independently)
-4. **MEDIUM**: Complete QuickSight dashboards (Karthik - after Glue setup)
-5. **MEDIUM**: Create ALB and configure AWS WAF (Karthik - ALB not yet created, different from K8s LoadBalancer)
-6. **LOW**: GuardDuty and CloudTrail setup (Karthik)
+### **Rahul Sharma** - ✅ **All Major Tasks Complete**
+**Status**: All core pipeline tasks are complete! Remaining items are optional enhancements:
+- **OPTIONAL**: Additional large-scale testing (20-50 images) if needed for final report
+- **OPTIONAL**: Cost analysis documentation (for final evaluation report)
+
+### **Karthik Ramanathan** - ⏳ **In Progress**
+1. **HIGH PRIORITY**: Set up Glue & Athena for telemetry analytics (can proceed independently)
+2. **MEDIUM**: Complete QuickSight dashboards (after Glue setup)
+3. **MEDIUM**: Configure Security Groups (WAF alternative - see [WAF_ALTERNATIVES.md](./WAF_ALTERNATIVES.md))
+4. **LOW**: GuardDuty and CloudTrail setup
+
+### **Repository Cleanup** - ✅ **Completed**
+- Removed unused test files and redundant scripts
+- Created comprehensive setup guide for easy pipeline recreation
+- Documented WAF alternatives for cost optimization
 
 ## 🤝 Contributing
 

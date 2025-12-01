@@ -31,12 +31,35 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     
     try:
         # Extract information from event
-        bucket = event.get('bucket', '')
-        key = event.get('key', '')
-        metadata = event.get('metadata', {})
-        study_id = metadata.get('study_id', 'unknown')
+        # Handle both direct input and Step Functions nested structure
+        if 'validation' in event:
+            # Step Functions passes nested structure: {bucket, key, validation: {metadata, studyId}}
+            bucket = event.get('bucket', '')
+            original_key = event.get('key', '')
+            validation = event.get('validation', {})
+            metadata = validation.get('metadata', {})
+            study_id = validation.get('studyId', metadata.get('study_id', 'unknown'))
+        else:
+            # Direct Lambda invocation
+            bucket = event.get('bucket', '')
+            original_key = event.get('key', '')
+            metadata = event.get('metadata', {})
+            study_id = metadata.get('study_id', event.get('studyId', 'unknown'))
+        
+        # Derive image key from metadata key or study_id
+        # If key ends with .json, replace with .png; otherwise use study_id
+        if original_key.endswith('.json'):
+            key = original_key.replace('.json', '.png')
+        elif 'study_id' in metadata:
+            key = f"images/{metadata['study_id']}.png"
+        elif study_id != 'unknown':
+            key = f"images/{study_id}.png"
+        else:
+            # Fallback: try to extract from original key
+            key = original_key.replace('.json', '.png') if '.json' in original_key else original_key
         
         print(f"Preprocessing image for study {study_id}: s3://{bucket}/{key}")
+        print(f"   Original key: {original_key}, Derived image key: {key}")
         
         # Download image from S3
         s3_client = boto3.client('s3')
@@ -61,11 +84,37 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
                 'latency_ms': int((time.time() - start_time) * 1000)
             }
         
-        # Prepare preprocessed data for next step
+        # Store preprocessed image in S3 (to avoid Step Functions 256KB limit)
+        # Use artifacts bucket for temporary storage
+        # Extract account ID from bucket name (format: radstream-images-{account_id})
+        account_id = bucket.split('-')[-1] if '-' in bucket else os.environ.get('AWS_ACCOUNT_ID', '')
+        artifacts_bucket = f"radstream-artifacts-{account_id}"
+        preprocessed_key = f"preprocessed/{study_id}/image.npy"
+        
+        # Upload preprocessed image as numpy array to S3
+        image_bytes = base64.b64decode(preprocessing_result['preprocessed_image'])
+        try:
+            s3_client.put_object(
+                Bucket=artifacts_bucket,
+                Key=preprocessed_key,
+                Body=image_bytes,
+                ContentType='application/octet-stream',
+                ServerSideEncryption='AES256'
+            )
+            print(f"Preprocessed image stored: s3://{artifacts_bucket}/{preprocessed_key}")
+        except ClientError as e:
+            return {
+                'success': False,
+                'error': f"Failed to store preprocessed image in S3: {str(e)}",
+                'latency_ms': int((time.time() - start_time) * 1000)
+            }
+        
+        # Prepare lightweight response (no base64 image data)
         preprocessed_data = {
             'study_id': study_id,
             'original_key': key,
-            'preprocessed_image': preprocessing_result['preprocessed_image'],
+            'preprocessed_s3_bucket': artifacts_bucket,
+            'preprocessed_s3_key': preprocessed_key,
             'image_shape': preprocessing_result['image_shape'],
             'normalization_params': preprocessing_result['normalization_params'],
             'metadata': metadata
@@ -153,32 +202,32 @@ def preprocess_image(image_data: bytes, metadata: Dict[str, Any]) -> Dict[str, A
         except ImportError:
             # Fallback normalization if torchxrayvision not available
             # Standard normalization: (pixel - mean) / std
-            # For chest X-rays, approximate normalization
+                # For chest X-rays, approximate normalization
             image_normalized = image_array / 255.0
-            # Apply approximate ImageNet-style normalization for grayscale
+                # Apply approximate ImageNet-style normalization for grayscale
             mean = 0.5
             std = 0.25
             image_normalized = (image_normalized - mean) / std
-        
-        # TorchXRayVision expects: (batch, 1, H, W) format
-        # Add channel dimension: (H, W) -> (1, H, W)
-        image_tensor = image_normalized[None, :, :]  # Add channel dimension
-        
-        # Add batch dimension: (1, H, W) -> (1, 1, H, W)
-        image_tensor = np.expand_dims(image_tensor, axis=0)
-        
-        # Convert to base64 for JSON serialization
-        image_bytes = image_tensor.tobytes()
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-        
-        # Calculate normalization parameters for potential denormalization
-        normalization_params = {
-            'mean': float(np.mean(image_normalized)),
-            'std': float(np.std(image_normalized)),
-            'min': float(np.min(image_normalized)),
-            'max': float(np.max(image_normalized))
-        }
-        
+            
+            # TorchXRayVision expects: (batch, 1, H, W) format
+            # Add channel dimension: (H, W) -> (1, H, W)
+            image_tensor = image_normalized[None, :, :]  # Add channel dimension
+            
+            # Add batch dimension: (1, H, W) -> (1, 1, H, W)
+            image_tensor = np.expand_dims(image_tensor, axis=0)
+            
+            # Convert to base64 for JSON serialization
+            image_bytes = image_tensor.tobytes()
+            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+            
+            # Calculate normalization parameters for potential denormalization
+            normalization_params = {
+                'mean': float(np.mean(image_normalized)),
+                'std': float(np.std(image_normalized)),
+                'min': float(np.min(image_normalized)),
+                'max': float(np.max(image_normalized))
+            }
+            
         return {
             'success': True,
             'preprocessed_image': image_base64,

@@ -40,10 +40,12 @@ class EndToEndTritonTester:
     
     def create_test_metadata(self, study_id: str) -> Dict[str, Any]:
         """Create test metadata JSON"""
+        # Use proper ISO 8601 format with Z suffix (not +00:00Z)
+        timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         return {
             'study_id': study_id,
             'view': 'PA',
-            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
+            'timestamp': timestamp,
             'patient_id': f'PAT-{study_id}',
             'modality': 'X-RAY',
             'body_part': 'CHEST'

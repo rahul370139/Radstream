@@ -1,34 +1,20 @@
-# RadStream Medical Imaging Pipeline - Git Ignore
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual environments
 venv/
 env/
 ENV/
-env.bak/
-venv.bak/
+*.egg-info/
+dist/
+build/
+
+# AWS
+.aws/
+*.pem
+*.key
 
 # IDE
 .vscode/
@@ -37,18 +23,17 @@ venv.bak/
 *.swo
 *~
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# OS
+.DS_Store
+Thumbs.db
 
-# AWS
-.aws/
-aws-credentials.json
-
-# Docker
-.dockerignore
-
-# Kubernetes
-*.kubeconfig
+# Test results
+*.json
+!**/label_mapping.json
+!**/iam_roles.json
+!**/package.json
+!**/tsconfig.json
+!**/next.config.js
 
 # Logs
 *.log
@@ -57,47 +42,39 @@ logs/
 # Temporary files
 *.tmp
 *.temp
-.DS_Store
-Thumbs.db
+*.bak
+*.backup
 
-# Test data
-test-images/
-sample-data/
-*.jpg
-*.png
-*.jpeg
-*.dcm
+# Model files (large)
+*.onnx
+*.onnx.data
+!model_repo/**/*.onnx
+!model_repo/**/*.onnx.data
 
-# Results and outputs
-results/
-outputs/
-benchmark-results/
+# Test images (keep structure, ignore large files)
+test_images/**/*.jpg
+test_images/**/*.png
+test_images/**/*.jpeg
+
+# Benchmark results
+benchmark_*.csv
 *.csv
-# Allow specific JSON files needed for the project
-!**/iam_roles.json
-!**/model_config.pbtxt
-!**/deploy_manifest.yaml
+!**/projects.json
+
+# Layer archives
+*-layer.zip
 
 # Environment variables
 .env
 .env.local
-.env.production
 
-# Secrets
-secrets/
-*.pem
-*.key
-*.crt
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
 
-# Backup files
-*.bak
-*.backup
+# Coverage
+.coverage
+htmlcov/
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Pytest
+.pytest_cache/

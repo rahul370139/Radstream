@@ -107,6 +107,12 @@ class StepFunctionsSetup:
                 "PrepareImage": {
                     "Type": "Task",
                     "Resource": "arn:aws:lambda:us-east-1:{}:function:radstream-prepare-tensors".format(self.account_id),
+                    "Parameters": {
+                        "bucket.$": "$.bucket",
+                        "key.$": "States.Format('images/{}.png', $.validation.studyId)",
+                        "metadata.$": "$.validation.metadata",
+                        "studyId.$": "$.validation.studyId"
+                    },
                     "Next": "InvokeInference",
                     "Retry": [
                         {

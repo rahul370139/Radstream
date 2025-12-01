@@ -89,6 +89,9 @@ class LambdaSetup:
         """Create deployment package for Lambda function with dependencies"""
         import subprocess
         import shutil
+        from pathlib import Path
+        
+        download_dir = None
         
         with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as temp_file:
             temp_path = temp_file.name
@@ -103,56 +106,40 @@ class LambdaSetup:
             
             # Install dependencies if requirements file exists
             if requirements_path and os.path.isfile(requirements_path):
-                print(f"   Installing dependencies from {requirements_path}...")
-                # Install dependencies to build directory
-                # Use --no-deps for numpy to avoid source directory issues
-                # Lambda runtime includes numpy, but we'll install it properly
-                result = subprocess.run([
-                    'pip', 'install', '-r', requirements_path,
-                    '-t', build_dir,
-                    '--quiet', '--disable-pip-version-check',
-                    '--no-cache-dir',
-                    '--only-binary=:all:'  # Force binary wheels, avoid source
-                ], check=False, capture_output=True, text=True)
+                print(f"   Resolving dependencies from {requirements_path} for Lambda runtime...")
+                download_dir = tempfile.mkdtemp()
+                download_path = Path(download_dir)
                 
-                if result.returncode != 0:
-                    print(f"   Warning: pip install had issues: {result.stderr[:200]}")
+                download_cmd = [
+                    'pip', 'download',
+                    '--dest', download_dir,
+                    '--platform', 'manylinux2014_x86_64',
+                    '--implementation', 'cp',
+                    '--python-version', '39',
+                    '--abi', 'cp39',
+                    '--only-binary=:all:',
+                    '--disable-pip-version-check',
+                    '-r', requirements_path
+                ]
                 
-                # Check and remove numpy source directories (but keep installed package)
-                numpy_dir = os.path.join(build_dir, 'numpy')
-                if os.path.exists(numpy_dir) and os.path.isdir(numpy_dir):
-                    # Check if it's a source directory (has setup.py in root)
-                    setup_py = os.path.join(numpy_dir, 'setup.py')
-                    if os.path.exists(setup_py):
-                        print(f"   ⚠️  Found numpy source directory, removing and reinstalling as binary...")
-                        shutil.rmtree(numpy_dir, ignore_errors=True)
-                        # Also remove any numpy egg-info
-                        for item in os.listdir(build_dir):
-                            if 'numpy' in item.lower() and 'egg-info' in item.lower():
-                                shutil.rmtree(os.path.join(build_dir, item), ignore_errors=True)
-                        
-                        # Reinstall numpy as binary wheel only
-                        subprocess.run([
-                            'pip', 'install', 'numpy>=1.24.0',
-                            '-t', build_dir,
-                            '--only-binary=:all:',
-                            '--no-cache-dir',
-                            '--quiet', '--disable-pip-version-check'
-                        ], check=False, capture_output=True)
-                        print(f"   ✅ Reinstalled numpy as binary wheel")
-                    
-                    # Remove setup.py if it exists (even in installed package, it shouldn't be there)
-                    if os.path.exists(setup_py):
-                        print(f"   Removing setup.py from numpy directory")
-                        os.remove(setup_py)
+                download_result = subprocess.run(download_cmd, capture_output=True, text=True)
                 
-                # Also remove any setup.py files from numpy subdirectories
-                for root, dirs, files in os.walk(build_dir):
-                    if 'numpy' in root:
-                        if 'setup.py' in files:
-                            setup_path = os.path.join(root, 'setup.py')
-                            print(f"   Removing setup.py from: {os.path.relpath(setup_path, build_dir)}")
-                            os.remove(setup_path)
+                if download_result.returncode != 0:
+                    print("   ⚠️  pip download failed, falling back to local install (may not be Lambda-compatible).")
+                    print(f"      stderr: {download_result.stderr[:200]}")
+                    subprocess.run([
+                        'pip', 'install', '-r', requirements_path,
+                        '-t', build_dir,
+                        '--quiet', '--disable-pip-version-check',
+                        '--no-cache-dir'
+                    ], check=True)
+                else:
+                    wheel_count = 0
+                    for wheel_file in download_path.glob('*.whl'):
+                        wheel_count += 1
+                        with zipfile.ZipFile(wheel_file, 'r') as whl:
+                            whl.extractall(build_dir)
+                    print(f"   ✅ Downloaded and extracted {wheel_count} wheels for Lambda runtime")
             
             # Create zip file with all files
             with zipfile.ZipFile(temp_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
@@ -212,6 +199,8 @@ class LambdaSetup:
                 os.unlink(temp_path)
             if os.path.exists(build_dir):
                 shutil.rmtree(build_dir)
+            if download_dir and os.path.exists(download_dir):
+                shutil.rmtree(download_dir, ignore_errors=True)
     
     def deploy_lambda_function(self, function_name: str, function_code_path: str, 
                              requirements_path: str, role_arn: str, 
@@ -334,12 +323,11 @@ class LambdaSetup:
             },
             'radstream-prepare-tensors': {
                 'code_path': '../../rahul/preprocessing/prepare_tensors.py',
-                'requirements_path': '../../rahul/preprocessing/requirements_no_pillow.txt',  # Use version without Pillow (layer provides it)
+                'requirements_path': '../../rahul/preprocessing/requirements.txt',
                 'role_name': 'RadStreamPrepareTensorsRole',
                 'environment_vars': {
                     'TELEMETRY_STREAM_NAME': 'radstream-telemetry'
-                },
-                'layers': []  # Will be set after layer is created
+                }
             },
             'radstream-store-results': {
                 'code_path': '../../rahul/preprocessing/store_results.py',
@@ -407,27 +395,13 @@ class LambdaSetup:
                 results[function_name] = False
                 continue
             
-            # Get layer ARN for prepare_tensors
-            layers = config.get('layers')
-            if function_name == 'radstream-prepare-tensors' and not layers:
-                # Get the Pillow layer ARN we created
-                try:
-                    layer_response = self.lambda_client.list_layer_versions(
-                        LayerName='radstream-pillow-layer',
-                        MaxItems=1
-                    )
-                    if layer_response['LayerVersions']:
-                        layers = [layer_response['LayerVersions'][0]['LayerVersionArn']]
-                except:
-                    pass
-            
             success = self.deploy_lambda_function(
                 function_name=function_name,
                 function_code_path=code_path,
                 requirements_path=requirements_path,
                 role_arn=role_arn,
                 environment_vars=config.get('environment_vars'),
-                layers=layers
+                layers=config.get('layers')
             )
             
             results[function_name] = success
@@ -467,6 +441,14 @@ class LambdaSetup:
                         "s3:GetObject"
                     ],
                     "Resource": f"arn:aws:s3:::radstream-images-{self.account_id}/*"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:PutObject",
+                        "s3:PutObjectAcl"
+                    ],
+                    "Resource": f"arn:aws:s3:::radstream-artifacts-{self.account_id}/*"
                 },
                 {
                     "Effect": "Allow",

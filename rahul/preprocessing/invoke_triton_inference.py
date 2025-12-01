@@ -9,7 +9,6 @@ import boto3
 from typing import Dict, Any, List
 import requests
 import numpy as np
-from scipy.special import expit as sigmoid
 
 # Initialize AWS clients
 s3_client = boto3.client('s3')
@@ -38,6 +37,12 @@ CHEXPERT13_LABELS = [
 ]
 
 CHEXPERT14_LABELS = CHEXPERT13_LABELS + ["No Finding"]
+
+
+def stable_sigmoid(x: np.ndarray) -> np.ndarray:
+    """Numerically stable sigmoid to avoid overflow on large magnitudes."""
+    clipped = np.clip(x, -50.0, 50.0)
+    return 1.0 / (1.0 + np.exp(-clipped))
 
 
 def load_label_mapping() -> Dict[str, Any]:
@@ -87,7 +92,7 @@ def map_txr_to_chexpert(txr_logits: np.ndarray, label_mapping: Dict[str, Any]) -
     batch_size = txr_logits.shape[0]
     
     # Apply sigmoid to get probabilities
-    txr_probs = sigmoid(txr_logits)  # Shape: (batch, 18)
+    txr_probs = stable_sigmoid(txr_logits)  # Shape: (batch, 18)
     
     # Get mapping
     chexpert_to_txr = label_mapping.get("chexpert_to_txr_index", {})
@@ -127,21 +132,36 @@ def invoke_triton_inference(preprocessed_image: Dict[str, Any]) -> Dict[str, Any
     Invoke Triton Inference Server with preprocessed image
     
     Args:
-        preprocessed_image: Dictionary with 'preprocessed_image' (base64) and 'image_shape'
+        preprocessed_image: Dictionary with either:
+            - 'preprocessed_image' (base64) - legacy format
+            - 'preprocessed_s3_bucket' and 'preprocessed_s3_key' - new format (to avoid Step Functions 256KB limit)
+        and 'image_shape'
         
     Returns:
         Dictionary with inference results
     """
-    # Decode base64 image
-    image_base64 = preprocessed_image.get('preprocessed_image', '')
     image_shape = preprocessed_image.get('image_shape', [1, 1, 224, 224])
     
-    if not image_base64:
-        raise ValueError("Missing preprocessed_image in input")
-    
-    # Decode base64 to numpy array
-    image_bytes = base64.b64decode(image_base64)
-    image_array = np.frombuffer(image_bytes, dtype=np.float32)
+    # Check if image is in S3 (new format) or base64 (legacy)
+    if 'preprocessed_s3_bucket' in preprocessed_image and 'preprocessed_s3_key' in preprocessed_image:
+        # Download from S3
+        s3_bucket = preprocessed_image['preprocessed_s3_bucket']
+        s3_key = preprocessed_image['preprocessed_s3_key']
+        print(f"Downloading preprocessed image from s3://{s3_bucket}/{s3_key}")
+        
+        s3_client = boto3.client('s3')
+        response = s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
+        image_bytes = response['Body'].read()
+        image_array = np.frombuffer(image_bytes, dtype=np.float32)
+    elif 'preprocessed_image' in preprocessed_image:
+        # Legacy base64 format
+        image_base64 = preprocessed_image.get('preprocessed_image', '')
+        if not image_base64:
+            raise ValueError("Missing preprocessed_image in input")
+        image_bytes = base64.b64decode(image_base64)
+        image_array = np.frombuffer(image_bytes, dtype=np.float32)
+    else:
+        raise ValueError("Missing preprocessed_image or preprocessed_s3_bucket/key in input")
     
     # Reshape to expected shape (batch, channels, height, width)
     if len(image_shape) == 4:
@@ -207,7 +227,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     {
         "study_id": "...",
         "preprocessing": {
-            "preprocessed_image": "base64...",
+            "preprocessed_s3_bucket": "radstream-artifacts-...",
+            "preprocessed_s3_key": "preprocessed/.../image.npy",
             "image_shape": [1, 1, 224, 224],
             ...
         }
@@ -314,4 +335,3 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "total_time_ms": error_time
             }
         }
-
