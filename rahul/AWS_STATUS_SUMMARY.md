@@ -199,27 +199,44 @@ python3 rahul/scripts/benchmark_real_images.py --num-images 10 --image-dir "../c
 1. ✅ Set up QuickSight account (free tier) - **Verify if completed**
 2. ⏳ Connect to Athena as data source - **Waiting for Glue setup**
 3. ⏳ Create Performance Dashboard
-4. ⏳ Create Security Dashboard (after WAF setup)
+4. ⏳ Create Security Dashboard (after Security Groups configuration)
 
 ---
 
 ### **Phase 4: Security Enhancements** ⏳
 
-**Goal**: Implement security controls (WAF alternatives), GuardDuty, and security testing.
+**Goal**: Implement cost-effective security controls (Security Groups instead of WAF), GuardDuty, and security testing.
 
 **Owner**: Karthik  
 **Timeline**: Week 4-5  
 **Priority**: Medium
 
+**Status**: ⏳ **NOT STARTED** - Security Groups configuration pending
+
+**Decision**: **Use Security Groups instead of AWS WAF** (cost savings: $5-10/month)
+
 **Tasks**:
-1. ⏳ Configure Security Groups (WAF Alternative) - **NOT STARTED**
-   - **Note**: AWS WAF is expensive ($5/month + $1/1M requests)
-   - **Alternative**: Use Security Groups + Network ACLs (FREE)
-   - **Action**: Configure EKS Security Group to allow only Lambda access
-   - **Reference**: See [WAF_ALTERNATIVES.md](../WAF_ALTERNATIVES.md) for details
-2. ⏳ Enable GuardDuty (optional, $4-5/month)
-3. ⏳ Security testing (SQL injection, XSS) - Can use application-level validation
-4. ⏳ Document security findings
+1. ⏳ **Configure Security Groups (WAF Alternative)** - **NOT STARTED** - **HIGH PRIORITY**
+   - **Cost**: **$0/month** (vs $5-10/month for AWS WAF)
+   - **Why**: AWS WAF is expensive ($5/month + $1/1M requests). For internal-only pipeline, Security Groups provide adequate protection.
+   - **Implementation**:
+     - Configure EKS Security Group to allow inbound only from Lambda security group (port 8000)
+     - Configure Lambda Security Group for outbound access to EKS
+     - Block all other inbound traffic to EKS
+     - Add application-level input validation in Lambda functions (SQL injection, XSS checks)
+   - **Reference**: See [WAF_ALTERNATIVES.md](../WAF_ALTERNATIVES.md) for detailed implementation guide
+   - **Timeline**: Week 4-5
+2. ⏳ **Enable GuardDuty** (optional, $4-5/month) - **LOW PRIORITY**
+   - **Task**: Enable GuardDuty for threat detection
+   - **Timeline**: Week 5-6
+   - **Note**: Optional - can be enabled if budget allows
+3. ⏳ **Security Testing** - **MEDIUM PRIORITY**
+   - **Task**: Test security controls (SQL injection, XSS, port scanning)
+   - **Implementation**: Use application-level validation in Lambda functions
+   - **Timeline**: Week 5-6
+4. ⏳ **Document Security Findings** - **LOW PRIORITY**
+   - **Task**: Document security posture and test results
+   - **Timeline**: Week 6-7
 
 ---
 
@@ -360,8 +377,29 @@ python3 rahul/scripts/benchmark_real_images.py --num-images 10 --image-dir "../c
    - **Timeline**: Week 2-3
    - **Dependency**: None (can proceed now)
    - **Action**: Execute Glue setup script to enable Athena queries
+   - **Status**: ⚠️ **NOT STARTED** - Can proceed independently
 
-2. **QuickSight Dashboards** ⏳ **MEDIUM PRIORITY**
+2. **Security Groups Configuration** ⏳ **HIGH PRIORITY** (WAF Alternative - FREE)
+   - **Task**: Configure Security Groups for network-layer security (FREE alternative to expensive AWS WAF)
+   - **Status**: ⚠️ **NOT STARTED**
+   - **Current State**: EKS cluster exists, but Security Groups not configured for restricted access
+   - **Timeline**: Week 4-5
+   - **Cost**: **$0/month** (vs $5-10/month for AWS WAF) - **Cost Savings: $5-10/month**
+   - **Why This Instead of WAF**: 
+     - AWS WAF costs $5/month + $1/1M requests (too expensive for this project)
+     - Pipeline is internal-only (Lambda → EKS → Lambda), no public internet access needed
+     - Security Groups provide adequate network-layer protection for free
+   - **Actions Required**:
+     1. Configure EKS Security Group to allow inbound only from Lambda security group (port 8000)
+     2. Configure Lambda Security Group for outbound access to EKS
+     3. Block all other inbound traffic to EKS (no public internet access)
+     4. Add application-level input validation in Lambda functions (SQL injection, XSS checks)
+   - **Reference**: See [WAF_ALTERNATIVES.md](../WAF_ALTERNATIVES.md) for detailed implementation guide
+   - **Note**: This provides network-layer security without the cost of AWS WAF
+
+#### **Medium Priority Tasks**
+
+3. **QuickSight Dashboards** ⏳ **MEDIUM PRIORITY**
    - **Task**: Complete QuickSight setup and create performance dashboards
    - **Status**: Account setup may be done (needs verification)
    - **Timeline**: Week 3-4
@@ -370,24 +408,16 @@ python3 rahul/scripts/benchmark_real_images.py --num-images 10 --image-dir "../c
      1. Verify QuickSight account is active
      2. Connect to Athena as data source (after Glue setup)
      3. Create Performance Dashboard
-     4. Create Security Dashboard (after WAF setup)
+     4. Create Security Dashboard (after Security Groups configuration)
 
-3. **AWS WAF Configuration** ⏳ **MEDIUM PRIORITY**
-   - **Task**: Create WAF Web ACL and attach to Application Load Balancer (ALB)
-   - **Status**: ⚠️ **NOT STARTED** - ALB not yet created
-   - **Current State**: Kubernetes LoadBalancer exists, but ALB with WAF not configured
-   - **Timeline**: Week 4-5
-   - **Actions Required**:
-     1. Create Application Load Balancer (ALB) in front of EKS service
-     2. Create WAF Web ACL with managed rules
-     3. Attach WAF to ALB
-     4. Update Triton endpoint configuration to use ALB
-   - **Note**: This is different from the existing Kubernetes LoadBalancer
+#### **Low Priority Tasks**
 
 4. **GuardDuty & CloudTrail** ⏳ **LOW PRIORITY**
    - **Task**: Enable GuardDuty and configure CloudTrail
    - **Timeline**: Week 5-6
    - **Dependency**: None
+   - **Cost**: GuardDuty ~$4-5/month (optional)
+   - **Note**: Optional - can be enabled if budget allows
 
 ---
 
@@ -461,7 +491,7 @@ python3 rahul/scripts/benchmark_real_images.py --num-images 10 --image-dir "../c
 | CloudWatch Dashboards | ✅ **Complete** | Karthik | - | ✅ Radstream-Monitoring created |
 | Glue Data Catalog | ⏳ Pending | Karthik | - | **HIGH PRIORITY** (can proceed now) |
 | QuickSight Dashboards | ⏳ In Progress | Karthik | Glue + Athena | Waiting for Glue setup |
-| WAF Configuration | ⏳ Pending | Karthik | - | **ALB not created yet** (different from K8s LB) |
+| Security Groups (WAF Alternative) | ⏳ Pending | Karthik | - | **FREE** alternative to WAF ($0/month) |
 
 ---
 
@@ -583,7 +613,7 @@ Step Functions (radstream-pipeline)
 - ⏳ **HIGH PRIORITY**: Rahul - Performance benchmarking (ready to proceed)
 - ⏳ **HIGH PRIORITY**: Karthik - Set up Glue and Athena (can proceed independently)
 - ⏳ Karthik - Complete QuickSight dashboards (after Glue setup)
-- ⏳ Karthik - Create ALB and configure WAF (different from existing K8s LoadBalancer)
+- ⏳ Karthik - Configure Security Groups (WAF alternative - FREE, $0/month)
 
 **Current State**: 
 - ✅ All core components deployed and integrated
