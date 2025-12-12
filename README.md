@@ -167,6 +167,20 @@ RadStream/
 | Mapped Output | 14 CheXpert labels |
 | Inference Server | NVIDIA Triton |
 
+## Baseline Comparison
+
+For local baseline inference comparison, see the **[CheXAgent CheXpert Evaluation](https://github.com/rahul370139/chexpert_labels)** project which provides:
+- Local ONNX Runtime inference (~26ms)
+- CheXpert 14-label evaluation
+- Ensemble model approach
+
+| Environment | Inference Time | Setup Time | Multi-User | Availability |
+|-------------|---------------|------------|------------|--------------|
+| **Local (Baseline)** | ~262ms | 24+ hours | ❌ Complex | ~99% |
+| **Cloud (RadStream)** | ~337ms | Minutes (IaC) | ✅ Built-in | 99.99% SLA |
+
+> **Note:** Cloud latency includes network overhead but provides enterprise-grade scalability, security, and 11-9s data durability.
+
 ## Performance
 
 ### Latency Distribution
