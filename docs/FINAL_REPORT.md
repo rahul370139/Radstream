@@ -183,22 +183,67 @@ RadStream implements a cloud-native, event-driven architecture with three distin
 
 ### 4.2 Pipeline Flow
 
-> **[Pipeline Sequence Diagram from ARCHITECTURE_DIAGRAM.md]**
+> **Diagram:** See [ARCHITECTURE_DIAGRAM.md](ARCHITECTURE_DIAGRAM.md) for complete Mermaid diagrams including security architecture, cost breakdown, and sequence diagrams.
 
-**Pipeline Stages:**
-
-| Stage | Component | Function |
-|-------|-----------|----------|
-| 1. Upload | Client | Doctor uploads X-ray + JSON metadata |
-| 2. Storage | S3 Images | Store raw images and metadata |
-| 3. Trigger | EventBridge | S3 PutObject triggers workflow |
-| 4. Orchestrate | Step Functions | Manage pipeline execution |
-| 5. Validate | Lambda | Check metadata schema |
-| 6. Preprocess | Lambda | Resize 224×224, grayscale, normalize |
-| 7. Inference | Lambda + EKS | Call Triton, map 18 TXR → 14 CheXpert |
-| 8. Store | Lambda | Save predictions.json to S3 |
-| 9. Telemetry | Lambda + Kinesis | Stream latency metrics |
-| 10. Analytics | Firehose → Glue → Athena | Query and analyze telemetry |
+```mermaid
+flowchart TB
+    subgraph CLIENT["1. CLIENT"]
+        A["Doctor uploads<br/>X-ray + metadata"]
+    end
+    
+    subgraph INGESTION["2. INGESTION"]
+        B["S3 Images Bucket"]
+        C["EventBridge<br/>PutObject Trigger"]
+    end
+    
+    subgraph ORCHESTRATION["3. ORCHESTRATION"]
+        D["Step Functions<br/>State Machine"]
+    end
+    
+    subgraph PROCESSING["4-6. PROCESSING"]
+        E["Lambda: Validate<br/>Check metadata schema"]
+        F["Lambda: Preprocess<br/>Resize 224x224, Grayscale"]
+        G["Lambda: Invoke Triton<br/>Call EKS endpoint"]
+    end
+    
+    subgraph INFERENCE["ML INFERENCE"]
+        H["EKS Cluster<br/>Triton Server"]
+        I["ONNX Model<br/>18 TXR → 14 CheXpert"]
+    end
+    
+    subgraph OUTPUT["7-8. OUTPUT"]
+        J["Lambda: Store Results<br/>predictions.json"]
+        K["Lambda: Send Telemetry<br/>Latency metrics"]
+    end
+    
+    subgraph STORAGE["STORAGE"]
+        L["S3 Results Bucket"]
+    end
+    
+    subgraph ANALYTICS["ANALYTICS PIPELINE"]
+        M["Kinesis Stream"]
+        N["Firehose"]
+        O["S3 Telemetry"]
+        P["Glue + Athena"]
+    end
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> G
+    G --> J
+    J --> K
+    J --> L
+    K --> M
+    M --> N
+    N --> O
+    O --> P
+```
 
 ### 4.3 Key Technical Innovations
 
