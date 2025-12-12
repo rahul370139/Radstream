@@ -30,13 +30,21 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
         bucket = event.get('bucket', '')
         key = event.get('key', '')
         
-        print(f"Validating metadata for: s3://{bucket}/{key}")
+        # If key is an image file, look for the corresponding JSON metadata file
+        if key.endswith(('.jpg', '.jpeg', '.png', '.dcm')):
+            # Replace image extension with .json
+            metadata_key = key.rsplit('.', 1)[0] + '.json'
+        else:
+            metadata_key = key
+        
+        print(f"Validating metadata for image: s3://{bucket}/{key}")
+        print(f"Metadata file: s3://{bucket}/{metadata_key}")
         
         # Download and parse JSON metadata
         s3_client = boto3.client('s3')
         
         try:
-            response = s3_client.get_object(Bucket=bucket, Key=key)
+            response = s3_client.get_object(Bucket=bucket, Key=metadata_key)
             metadata_content = response['Body'].read().decode('utf-8')
             metadata = json.loads(metadata_content)
         except ClientError as e:
